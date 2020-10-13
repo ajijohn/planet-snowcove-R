@@ -1,0 +1,173 @@
+---
+title: "Clip_and_RF"
+author: "Aji John"
+date: "10/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r }
+library(raster)
+library(tidyverse)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+aso <- raster('ASO_3M_SD_USCATE_20190705_4326_binary.tiff')
+planet <- stack('20190705_181946_101b_3B_AnalyticMS_SR.tif')
+
+#s <- stack (aso,planet)
+```
+
+crop it 
+```{r, echo=FALSE}
+
+library(geojson)
+library(rgdal)
+# import the vector boundary
+crop_extent <- readOGR("tuol-larger.geojson")
+## OGR data source with driver: ESRI Shapefile 
+## Source: "/root/earth-analytics/data/week-03/BLDR_LeeHill/clip-extent.shp", layer: "clip-extent"
+## with 1 features
+## It has 1 fields
+## Integer64 fields read as strings:  id
+
+# plot imported shapefile
+# notice that you use add = T to add a layer on top of an existing plot in R.
+plot(crop_extent,
+     main = "Shapefile imported into R - crop extent",
+     axes = TRUE,
+     border = "blue")
+```
+
+```{r, echo=FALSE}
+
+# Shapefile reprojection to WGS84
+shp_utm <- spTransform(crop_extent, crs(aso))
+shp_utm
+plot(shp_utm)
+```
+
+
+reproject fails
+```{r, echo=FALSE}
+
+#planet_repr<-projectRaster(planet,crs=crs(aso))
+```
+crop
+
+```{r, echo=FALSE}
+aso_crop<-crop(aso,extent(planet_repr))
+```
+
+stack the m all, but reproject first, aso is finer
+rror in compareRaster(x) : different extent
+
+
+```{r, echo=FALSE}
+
+# Shapefile reprojection to WGS84
+#shp_utm <- spTransform(crop_extent, crs(aso))
+#shp_utm
+# Value extraction
+#analysisp<-stack(aso_crop,planet_repr)
+```
+
+```{r, echo=FALSE}
+
+# Shapefile reprojection to WGS84
+#shp_utm <- spTransform(crop_extent, crs(aso))
+#shp_utm
+# Value extraction
+extent(aso_crop)
+
+```
+
+
+```{r, echo=FALSE}
+
+# Shapefile reprojection to WGS84
+#shp_utm <- spTransform(crop_extent, crs(aso))
+#shp_utm
+# Value extraction
+
+extent(planet_repr)
+```
+
+
+one pixel diff
+```{r, echo=FALSE}
+# check the extents of the two layers -- if they are different
+# crop both datasets
+
+  # calculate overlap between the two datasets
+  overlap <- raster::intersect(extent(aso_crop), extent(planet_repr))
+  # now let's crop both datasets to the overlap region
+  aso_crop <- crop(aso_crop, overlap)
+  planet_repr <- crop(planet_repr, overlap)
+
+```  
+switching to GDAL
+
+```{r, echo=FALSE}
+library(rgdal)
+# Shapefile reprojection to WGS84
+#shp_utm <- spTransform(crop_extent, crs(aso))
+#shp_utm
+# Value extraction
+#aso_vcrop_rep <- resample(aso_crop, planet_repr, method="ngb")
+rgdal::GDALinfo('ASO_3M_SD_USCATE_20190705_4326_binary.tiff')
+```
+
+- Reproject planet to match aso
+- Crop the overlap area with Planet as reference
+
+```{r, echo=FALSE}
+library(plotKML  )
+
+planet_84 <- reproject(planet,CRS("+init=epsg:4326"))
+```
+
+convert , stack was failing bececause crop wasn't working because res were different
+
+```{r, echo=FALSE}
+library(plotKML  )
+
+  # calculate overlap between the two datasets
+overlap <- raster::intersect(extent(aso_crop), extent(planet_84))
+
+aso_crop_foxr <- resample(aso_crop, planet_84, method="ngb")
+#r3 <- mask(aso_cropped, planet_84)
+#planet_84_crop <- crop(planet_84, overlap)
+#study_84 <- raster::stack(aso_crop,planet_84)
+```
+
+Lets stack them, bilinear for bilinear interpolation gives fractions, use ngb
+
+```{r, echo=FALSE}
+writeRaster(aso_crop_foxr,'aso_wgs84_final_match.tiff')
+writeRaster(planet_84,'planet_wgs84_final_match.tiff')
+
+study_84 <- raster::stack(aso_crop_foxr,planet_84)
+names(study_84) = c( "snow_nosnow","blue", "green" ,"red","nir")
+```
+
+```{r, echo=FALSE}
+library(randomForest)
+study_84_df <- study_84  %>% as.data.frame() %>% drop_na() %>% as.data.frame()
+study_84_df$snow_nosnow <- as.factor(study_84_df$snow_nosnow)
+rf1 <- randomForest(formula=snow_nosnow ~., data=study_84_df, ntree=500, mtry=10)
+
+```
