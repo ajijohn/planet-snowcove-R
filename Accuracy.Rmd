@@ -1,0 +1,128 @@
+---
+title: "Accuracy"
+author: "Aji John"
+date: "10/28/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r }
+library(raster)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+aso<- raster('data/demfilterednormal_stacked_asov3.tiff')
+pred <- raster('data/demnormalized_stacked_predv3.tiff')
+
+plot(aso)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r , echo=FALSE}
+
+plot(pred)
+```
+
+
+```{r , echo=FALSE}
+extent(aso)
+extent(pred)
+df <- stack(aso,pred_rep)
+```
+> aso
+class      : RasterLayer 
+dimensions : 17917, 14848, 266031616  (nrow, ncol, ncell)
+resolution : 2.145767e-05, 1.690636e-05  (x, y)
+extent     : -119.707, -119.3884, 37.87484, 38.17775  (xmin, xmax, ymin, ymax)
+crs        : +proj=utm +zone=11 +datum=WGS84 +units=m +no_defs 
+source     : /Users/ajijohn/git/planet-snowcove-R/data/demfilterednormal_stacked_asov3.tiff 
+names      : demfilterednormal_stacked_asov3 
+values     : -32768, 32767  (min, max)
+
+> 
+> plot(pred)
+> View(pred_rep)
+> pred
+class      : RasterLayer 
+dimensions : 17919, 14848, 266061312  (nrow, ncol, ncell)
+resolution : 2.145767e-05, 1.690436e-05  (x, y)
+extent     : -119.707, -119.3884, 37.87484, 38.17775  (xmin, xmax, ymin, ymax)
+crs        : +proj=utm +zone=11 +datum=WGS84 +units=m +no_defs 
+source     : /Users/ajijohn/git/planet-snowcove-R/data/demnormalized_stacked_predv3.tiff 
+names      : demnormalized_stacked_predv3 
+values     : -32768, 32767  (min, max)
+
+
+
+```{r , echo=FALSE}
+aso_prj <- projectRaster(aso,pred)
+extent(aso_prj)
+extent(pred)
+writeRaster(aso_prj, filename="data/demfilterednormal_stacked_asov3_reprg.tiff", format="GTiff", overwrite=TRUE)
+```
+
+
+```{r , echo=FALSE}
+df <- stack(aso_prj,pred)
+plot(aso_prj)
+```
+
+```{r , echo=FALSE}
+data_matrix <- rasterToPoints(df)
+head(data_matrix)
+
+```
+
+```{r , echo=FALSE}
+datafra_comb <- data_matrix %>% as.data.frame()
+```
+
+```{r , echo=FALSE}
+library(tidyverse)
+
+datafra_comb %>%summarise_all(~ sum(is.na(.)))
+```
+
+```{r , echo=FALSE}
+datafra_comb_dropna <- datafra_comb %>% filter_all(any_vars(!is.na(.))) %>% as.data.frame()
+
+datafra_comb_dropna %>% filter(demnormalized_stacked_predv3 < 0) %>% tally()
+```
+```{r , echo=FALSE}
+datafra_comb_fixed <- datafra_comb_dropna[complete.cases(datafra_comb_dropna),]
+
+```
+
+```{r , echo=FALSE}
+vals_pred <- getValues(pred)
+vals_aso <- getValues(aso_prj)
+
+```
+
+```{r , echo=FALSE}
+datafra_comb_dropna_mod <- datafra_comb_dropna
+
+datafra_comb_dropna_mod[datafra_comb_dropna_mod$demfilterednormal_stacked_asov3 <0,]
+```
+
+```{r , echo=FALSE}
+library(caret)
+datafra_comb_fixed %>% filter(demfilterednormal_stacked_asov3 <0.0 ) %>% tally()
+
+datafra_comb_fixed$demfilterednormal_stacked_asov3 <- round(datafra_comb_fixed$demfilterednormal_stacked_asov3)
+perf<- confusionMatrix(as.factor(datafra_comb_fixed$demfilterednormal_stacked_asov3), as.factor(datafra_comb_fixed$demnormalized_stacked_predv3),mode = "prec_recall")
+```
