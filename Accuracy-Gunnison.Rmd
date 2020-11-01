@@ -48,6 +48,29 @@ predclip_co <- rast('data/cropped-dem_stackedco_demandfriendsnormalized_predv3.t
 x <- c(aso_co,predclip_co)
 ```
 
+# get values
+```{r , echo=FALSE}
+
+aso_df <- terra::values(aso_co,mat=FALSE)
+pred_df <- terra::values(predclip_co,mat=FALSE)
+
+aso_df <- as.data.frame(aso_df)
+pred_df <- as.data.frame(pred_df)
+
+df <- data.frame(aso_df,pred_df)
+colnames(df) <= c('aso','pred')
+```
+# Far more efficient, sum the layers
+```{r , echo=FALSE}
+library(caret)
+df_filtered <- df[complete.cases(df),]
+#confusionMatrix(df$aso,df$pred,mode = 'prec_recall')
+```
+
+```{r , echo=FALSE}
+confusionMatrix(as.factor(df_filtered$aso),as.factor(df_filtered$pred),mode = 'prec_recall')
+```
+
 # Far more efficient, sum the layers
 ```{r , echo=FALSE}
 s <- app(x, fun=sum,nodes=8)
@@ -72,8 +95,7 @@ library(leaflet)
 agreeordis <- raster(s)
 m <- leaflet() %>% setView(lng = -107, lat = 38.9, zoom = 15)
 m %>% 
-  addProviderTiles("Esri.WorldImagery") %>%
-  addRasterImage(agreeordis, opacity = 0.8)
+  addProviderTiles("Esri.WorldImagery") 
 ```
 
 
