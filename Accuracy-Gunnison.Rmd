@@ -44,8 +44,121 @@ x <- c(aso_co,planetcrop)
 library(terra)
 aso_co <- rast('data/dem_stackedco_demandfriendsnormalized_asov3.tiff')
 predclip_co <- rast('data/cropped-dem_stackedco_demandfriendsnormalized_predv3.tiff')
-
+planet_area <- rast('data/20180524_172634_0f2d_3B_AnalyticMS_SR.tif')
 x <- c(aso_co,predclip_co)
+# create shapefile
+plot(x)
+#plot(planet_area[],add=TRUE)
+```
+```{r , echo=FALSE}
+
+planet_area_ref <- planet_area/10000
+plotRGB(planet_area_ref, r=3, g=2, b=1, axes=TRUE, stretch="lin", main="Planet False Color Composite")
+```
+Reproject 
+
+```{r , echo=FALSE}
+
+
+crs_latlong <-crs("+proj=longlat +datum=WGS84")
+
+planet_area_ref_wgs84 <- terra::project(planet_area_ref,crs_latlong)
+aso_pred_wgs84 <- terra::project(x,crs_latlong)
+terra::writeRaster(planet_area_ref_wgs84,'data/planetprojwgs84.tiff')
+plot(planet_area_ref_wgs84)
+```
+crop the predicted and aso with planet extent 
+
+```{r , echo=FALSE}
+
+asopluspred <- terra::crop(x, terra::ext(planet_area_ref_wgs84))
+terra::writeRaster(asopluspred,'data/asopluspredclippedplanet.tiff')
+y <- c(planet_area_ref_wgs84,asopluspred)
+```
+
+```{r , echo=FALSE}
+library(rgdal)
+library(rasterVis)
+library(RColorBrewer)
+
+colr <- colorRampPalette(brewer.pal(2, 'RdYlBu'))
+
+rpredasoclip <-  raster::stack('data/asopluspredclippedplanet.tiff')
+rasterVis::levelplot(rpredasoclip, 
+          margin=FALSE,                       # suppress marginal graphics
+          colorkey=list(
+            space='bottom',                   # plot legend at bottom
+            labels=list(at=-5:5, font=4)      # legend ticks and labels 
+          ),    
+          par.settings=list(
+            axis.line=list(col='transparent') # suppress axes and legend outline
+          ),
+          scales=list(draw=FALSE),            # suppress axis labels
+          col.regions=colr,                   # colour ramp
+          at=seq(-5, 5, len=101))
+
+
+```
+## visualize the planet tile
+```{r , echo=FALSE}
+vi2 <- function(x, y) {
+    (x - y) / (x + y)
+}
+ndvi2gunni <- terra::lapp(planet_area_ref_wgs84[[4:3]], fun=vi2)
+plot(ndvi2gunni, col=rev(terrain.colors(10)), main="Planet-NDVI Gunnison")
+
+```
+
+
+## Create shapefile for Gunnison (utility)
+```{r , echo=FALSE}
+
+e <- raster::extent(raster::raster(aso_co))
+p <- as(e, 'SpatialPolygons')
+crs(p) <-"+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+shapefile(p, 'data/gunnison.shp')
+```
+
+```{r , echo=FALSE}
+library(sp)
+library(sf)
+#library(raster)
+library(rosm)
+library(ggspatial)
+library(ggsn)
+
+#ASO 
+TV_dem <- raster::stack('data/asopluspredclippedplanet.tiff')[[1]]
+tv_xmin <- extent(TV_dem)[1]
+tv_xmax <- extent(TV_dem)[2]
+tv_ymin <- extent(TV_dem)[3]
+tv_ymax <- extent(TV_dem)[4]
+
+ggspatial::ggplot(x = extent(tv_xmin, tv_xmax + 0.0275, tv_ymin, tv_ymax), 
+           type = 'cartolight') +
+  annotation_map_tile(zoomin = -1) +
+    annotation_spatial(TV_dem, aes(fill = band1), alpha = 0.5) + 
+  # C:\OSGeo4W64\apps\qgis-ltr\resources\cpt-city-qgis-min\bhw\bhw2\bhw2_39.svg:
+  scale_fill_gradientn(colours=c('#28dce2', '#8f5dd5', '#8f5dd5' ,'#ffff80', 
+                                 '#f4893a', '#994469', '#581389' ),
+                                values = c(0.0000, 0.1299, 0.2600, 0.4800, 
+                                           0.5901, 0.7900, 1.000)) +
+  ggsn::north(x.min = tv_xmin, x.max = tv_xmax + 0.0235,
+              y.min = tv_ymin, y.max = tv_ymin - 0.001, 
+              symbol = 7, scale = 0.08) +
+  ggsn::scalebar(x.min = tv_xmin, x.max = tv_xmax, 
+                 y.min = tv_ymin, y.max = tv_ymax,
+                 anchor = c(x = tv_xmax + 0.025, y = tv_ymin),
+                 height = 0.015, dist = 1, st.size = 3, 
+                 dd2km = TRUE, model = 'WGS84') +
+  ggtitle('SRTM DEM-S Elevation', subtitle = 'Townsville 1:25,000 topographic key map sheet') + 
+  labs(x = 'Longitude', y = 'Latitude', fill = 'Elevation (m)') +
+  guides(fill = guide_colorbar(override.aes = list(alpha = 0.5))) +
+  theme(legend.position = c(0.9, 0.5),
+        legend.background = element_rect(fill = alpha('white', 0)),
+        legend.key.height = unit(0.7, "in")) +
+  coord_fixed()
+
 ```
 
 # get values
@@ -60,6 +173,8 @@ pred_df <- as.data.frame(pred_df)
 df <- data.frame(aso_df,pred_df)
 colnames(df) <= c('aso','pred')
 ```
+
+
 # Far more efficient, sum the layers
 ```{r , echo=FALSE}
 library(caret)
@@ -80,6 +195,8 @@ s <- app(x, fun=sum,nodes=8)
 ```{r , echo=FALSE}
 plot(s)
 ```
+
+
 ```{r , echo=FALSE}
 nosnowmatch <- freq(s, value=0)
 nosnowmismatch <- freq(s, value=1)

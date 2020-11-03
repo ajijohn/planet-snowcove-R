@@ -1,0 +1,156 @@
+---
+title: "buildpolygons"
+author: "Aji John"
+date: "11/1/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library("devtools")
+library("sp")
+library("raster")
+library("rgdal")
+library("scales")
+library("xml2")
+library("git2r")
+library("usethis")
+library("fftwtools")
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r }
+devtools::install_github("filipematias23/FIELDimageR")
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r , echo=FALSE}
+library(FIELDimageR)
+library(raster)
+```
+
+
+# read the image
+blue, green, red and nor is the squencxe
+```{r , echo=FALSE}
+EX1<-stack("data/20190705_181946_101b_3B_AnalyticMS_SR.tif")
+EX2 <- EX1/10000
+plotRGB(EX2, r = 1, g = 2, b = 3)
+
+```
+```{r , echo=FALSE}
+vi <- function(img, k, i) {
+  bk <- img[[k]]
+  bi <- img[[i]]
+  vi <- (bk - bi) / (bk + bi)
+  return(vi)
+}
+
+```
+
+
+```{r , echo=FALSE}
+# For Landsat NIR = 5, red = 4.
+ndvi <- vi(EX2, 4, 3)
+plot(ndvi, col = rev(terrain.colors(10)), main = "Planet-NDVI")
+
+```
+
+faster
+
+```{r , echo=FALSE}
+# For Landsat NIR = 5, red = 4.
+# For Planet NIR = 4, red = 3
+vi2 <- function(x, y) {
+    (x - y) / (x + y)
+}
+ndvi2 <- overlay(EX2[[4]], EX2[[3]], fun=vi2)
+plot(ndvi2, col=rev(terrain.colors(10)), main="Planet-NDVI")
+
+```
+Histogram
+# view histogram of data
+
+```{r , echo=FALSE}
+hist(ndvi2,
+     main = "Distribution of NDVI values",
+     xlab = "NDVI",
+     ylab= "Frequency",
+     col = "wheat",
+     xlim = c(-0.5, 1),
+     breaks = 30,
+     xaxt = 'n')
+axis(side=1, at = seq(-0.5,1, 0.05), labels = seq(-0.5,1, 0.05))
+```
+
+Note that NDVI values are standardized and ranges between -1 to +1. Higher values indicate more green cover.
+
+```{r , echo=FALSE}
+veg <- reclassify(ndvi2, cbind(-Inf, 0.4, NA))
+plot(veg, main='Vegetation')
+```
+Let’s map the area that corresponds to the peak between 0.25 and 0.3 in the NDVI histogram.
+
+```{r , echo=FALSE}
+land <- reclassify(ndvi2, c(-Inf, 0.25, NA,  0.25, 0.3, 1,  0.3, Inf, NA))
+plot(land, main = 'What is it?')
+
+plotRGB(EX2, r=3, g=2, b=1, axes=TRUE, stretch="lin", main="Planet False Color Composite")
+plot(land, add=TRUE, legend=FALSE)
+```
+
+You can also create classes for different amount of vegetation presence.
+
+```{r , echo=FALSE}
+vegc <- reclassify(ndvi2, c(-Inf,0.25,1, 0.25,0.3,2, 0.3,0.4,3, 0.4,0.5,4, 0.5,Inf, 5))
+plot(vegc,col = rev(terrain.colors(4)), main = 'NDVI based thresholding')
+```
+
+
+unsupervised clustering - segmentation
+
+```{r , echo=FALSE}
+nr <- getValues(ndvi2)
+str(nr)
+```
+
+```{r , echo=FALSE}
+# It is important to set the seed generator because `kmeans` initiates the centers in random locations
+set.seed(99)
+# We want to create 10 clusters, allow 500 iterations, start with 5 random sets using "Lloyd" method
+kmncluster <- kmeans(na.omit(nr), centers = 10, iter.max = 500, nstart = 5, algorithm="Lloyd")
+
+# kmeans returns an object of class "kmeans"
+str(kmncluster)
+```
+
+```{r , echo=FALSE}
+#ndvi_filtered <- ndvi2[complete.cases(ndvi2),]
+# your coordinate reference setup 
+this_crs <- crs("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0")
+
+r1NaM <- is.na(as.matrix(ndvi2))
+colNotNA <- which(colSums(r1NaM) != nrow(ndvi2))
+rowNotNA <- which(rowSums(r1NaM) != ncol(ndvi2))
+r3Extent <- extent(ndvi2, rowNotNA[1], rowNotNA[length(rowNotNA)],
+   colNotNA[1], colNotNA[length(colNotNA)])
+r3 <- crop(ndvi2, r3Extent)
+
+ndvi_filtered <-  mask(ndvi2, ndvi2)
+
+# Use the ndvi object to set the cluster values to a new raster
+knr <- setValues(ndvi2, kmncluster$cluster)
+# You can also do it like this
+knr <- raster(ndvi2)
+values(knr) <- kmncluster$cluster
+knr
+```

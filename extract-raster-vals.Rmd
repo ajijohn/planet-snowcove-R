@@ -1,0 +1,57 @@
+---
+title: "extract values-raster"
+author: "Aji John"
+date: "11/2/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(exactextractr)
+library(terra)
+```
+
+## R Markdown
+
+Extracts the values of cells in a Raster* that are covered by a simple feature collection containing polygonal geometries, as well as the fraction of each cell that is covered by the polygon. Returns either the result of a summary operation or function applied to the values and coverage fractions (if fun is specified), or a data frame containing the values and coverage fractions themselves (if fun is NULL.)
+
+
+```{r cars}
+rast <- raster::raster(matrix(1:100, ncol=10), xmn=0, ymn=0, xmx=10, ymx=10)
+poly <- sf::st_as_sfc('POLYGON ((2 2, 7 6, 4 9, 2 2))')
+
+# named summary operation on RasterLayer, returns vector
+exact_extract(rast, poly, 'mean')
+#> [1] 43.16667
+
+# two named summary operations on RasterLayer, returns data frame
+exact_extract(rast, poly, c('min', 'max'))
+#>   min max
+#> 1  25  65
+
+# named summary operation on RasterStack, returns data frame
+stk <- raster::stack(list(a=rast, b=sqrt(rast)))
+exact_extract(stk, poly, 'mean')
+#>     mean.a   mean.b
+#> 1 43.16667 6.525083
+
+# named weighted summary operation, returns vector
+weights <- raster::raster(matrix(runif(100), ncol=10), xmn=0, ymn=0, xmx=10, ymx=10)
+exact_extract(rast, poly, 'weighted_mean', weights=weights)
+#> [1] 43.34777
+
+# custom summary function, returns vector
+exact_extract(rast, poly, function(value, cov_frac) length(value[cov_frac > 0.9]))
+#> [1] 7
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

@@ -1,0 +1,197 @@
+---
+title: "randomforest"
+author: "Aji John"
+date: "11/2/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Parallel execution 
+
+```{r setup, include=FALSE}
+
+library(doMC)
+registerDoMC()
+x <- matrix(runif(500), 100)
+y <- gl(2, 50)
+#Parallel execution (took 73 sec)
+
+rf <- foreach(ntree=rep(25000, 6), .combine=combine, .packages='randomForest') %dopar%
+randomForest(x, y, ntree=ntree) 
+#Sequential execution (took 82 sec)
+
+rf <- foreach(ntree=rep(25000, 6), .combine=combine) %do%
+randomForest(x, y, ntree=ntree) 
+```
+
+
+
+Setting .multicombine to TRUE can make a significant difference:
+
+```{r setup, include=FALSE}
+
+rf <- foreach(ntree=rep(25000, 6), .combine=randomForest::combine,
+              .multicombine=TRUE, .packages='randomForest') %dopar% {
+    randomForest(x, y, ntree=ntree)
+}
+```
+
+This causes combine to be called once rather than five times. On my desktop machine, this runs in 8 seconds rather than 19 seconds
+
+
+## R Markdown
+
+
+
+A very basic introduction to Random Forests using R
+Random Forests is a powerful tool used extensively across a multitude of fields. As a matter of fact, it is hard to come upon a data scientist that never had to resort to this technique at some point. Motivated by the fact that I have been using Random Forests quite a lot recently, I decided to give a quick intro to Random Forests using R.
+
+So what are Random Forests?  Well, I am probably not the most suited person to answer this question (a google search will reveal much more interesting answers) , still I shall give it a go. Random Forests is a learning method for classification (and others applications — see below). It is based on generating a large number of decision trees, each constructed using a different subset of your training set. These subsets are usually selected by sampling at random and with replacement from the original data set. The decision trees are then used to identify a classification consensus by selecting the most common output (mode). While random forests can be used for other applications (i.e. regression), for the sake of keeping this post short, I shall focus solely on classification.
+
+Why R? Well, the quick and easy question for this is that I do all my plotting in R (mostly because I think ggplot2 looks very pretty). I decided to explore Random Forests in R and to assess what are its advantages and shortcomings. I am planning to compare Random Forests in R against the python implementation in scikit-learn. Do expect a post about this in the near future!
+
+The data: to keep things simple, I decided to use the Edgar Anderson’s Iris Data set. You can have a look at it by inspecting the contents of iris in R. This data set contains observations for four features (sepal length and width, and petal length and width – all in cm) of 150 flowers, equally split between three different iris species. This data set is fairly canon in classification and data analysis. Let us take a look at it, shall we:
+
+
+
+As you can observe, there seems to be some separation in regards to the different features and our three species of irises [note: this set is not very representative of a real world data set and results should be taken with a grain of salt].
+
+Training and Validation sets: great care needs to be taken to ensure clear separation between training and validation sets. I tend to save the cases for which I am actually interested in performing predictions as a second validation set (Validation 2). Then I split the remaining data evenly into Training and Validation 1.
+
+Let us split our data set then, shall we?
+
+# Set random seed to make results reproducible:
+set.seed(17)
+# Calculate the size of each of the data sets:
+data_set_size <- floor(nrow(iris)/2)
+# Generate a random sample of "data_set_size" indexes
+indexes <- sample(1:nrow(iris), size = data_set_size)
+# Assign the data to the correct sets
+training <- iris[indexes,]
+validation1 <- iris[-indexes,]
+Before we can move on, here are some things to consider:
+
+1- The size of your data set usually imposes a hard limit on how many features you can consider. This occurs due to the curse of dimensionality, i.e. your data becomes sparser and sparser as you increase the number of features considered, which usually leads to overfitting. While there is no rule of thumb relating to how many features vs.  the number of observations you should use, I try to keep e^Nf < No (Nf = number of features, No = number of observations) to minimise overfitting [this is not always possible and it does not ensure that we won’t overfit]. In this case, our training set has 75 observations, which suggests that using four features (e^4 ~ 54.6) is not entirely absurd. Obviously, this depends on your data, so we will cover some further overfitting checks later on.
+
+2- An important thing to consider when assembling training sets is the proportion of negatives vs. positives in your data. Think of an extreme scenario where you have many, many more observations for one class vs. the others. How will this affect classification? This would make it more likely for the classifier to predict the dominant class when given new values. I mentioned before that the iris set is quite nice to play with. It comes with exactly 50 observations for each species of irises. What happens if you have a data set with a much higher number of observations for a particular class? You can bypass any imbalance regarding the representation of each class by carefully constructing your training set in order not to favour any particular class. In this case, our randomly selected set has 21 observations for species setosa and 27 observations for each of species versicolor and virginica, so we are good to go.
+
+3- Another common occurrence that is not represented by the iris data set is missing values (NAs) for observations. There are many ways of dealing with missing values, including assigning the median or the mode for that particular feature to the missing observation or even disregarding some observations entirely, depending on how many observations you have. There are even ways to use random forests to estimate a good value to assign to the missing observations, but for the sake of brevity, this will not be covered here.
+
+Right, data sets prepared and no missing values, it is time to fire our random forests algorithm. I am using the  randomForest package. You can click the link for additional documentation. Here is the example usage code:
+
+#import the package
+library(randomForest)
+# Perform training:
+rf_classifier = randomForest(Species ~ ., data=training, ntree=100, mtry=2, importance=TRUE)
+Note some important parameters:
+
+-The first parameter specifies our formula: Species ~ . (we want to predict Species using each of the remaining columns of data).
+–ntree defines the number of trees to be generated. It is typical to test a range of values for this parameter (i.e. 100,200,300,400,500) and choose the one that minimises the OOB estimate of error rate.
+–mtry is the number of features used in the construction of each tree. These features are selected at random, which is where the “random” in “random forests” comes from. The default value for this parameter, when performing classification, is sqrt(number of features).
+–importance enables the algorithm to calculate variable importance.
+
+We can quickly look at the results of our classifier for our training set by printing the contents of rf_classifier:
+
+> rf_classifier
+Call:
+ randomForest(formula = Species ~ ., data = training,ntree=100,mtry=2, importance = TRUE) 
+               Type of random forest: classification
+                     Number of trees: 100
+No. of variables tried at each split: 2
+        OOB estimate of  error rate: 5.33%
+Confusion matrix:
+           setosa versicolor virginica class.error
+setosa         21          0         0  0.00000000
+versicolor      0         25         2  0.07407407
+virginica       0          2        25  0.07407407
+As you can see, it lists the call used to build the classifier, the number of trees (100), the variables at each split (2), and it outputs a very useful confusion matrix and OOB estimate of error rate. This estimate is calculated by counting however many points in the training set were misclassified (2 versicolor and 2 virginica observations = 4) and dividing this number by the total number of observations (4/75 ~= 5.33%).
+
+The OOB estimate of error rate is a useful measure to discriminate between different random forest classifiers. We could, for instance, vary the number of trees or the number of variables to be considered, and select the combination that produces the smallest value for this error rate. For more complicated data sets, i.e. when a higher number of features is present, a good idea is to use cross-validation to perform feature selection using the OOB error rate (see rfcv from randomForest for more details).
+
+Remember the importance parameter? Let us take a look at the importance that our classifier has assigned to each variable:
+
+varImpPlot(rf_classifier)
+
+
+Each features’s importance is assessed based on two criteria:
+
+-MeanDecreaseAccuracy: gives a rough estimate of the loss in prediction performance when that particular variable is omitted from the training set. Caveat: if two variables are somewhat redundant, then omitting one of them may not lead to massive gains in prediction performance, but would make the second variable more important.
+
+-MeanDecreaseGini: GINI is a measure of node impurity. Think of it like this, if you use this feature to split the data, how pure will the nodes be? Highest purity means that each node contains only elements of a single class. Assessing the decrease in GINI when that feature is omitted leads to an understanding of how important that feature is to split the data correctly.
+
+Do note that these measures are used to rank variables in terms of importance and, thus, their absolute values could be disregarded.
+
+Ok, great. Looks like we have a classifier that was properly trained and is producing somewhat good predictions for our training set. Shall we evaluate what happens when we try to use this classifier to predict classes for our  validation1 set?
+
+# Validation set assessment #1: looking at confusion matrix
+prediction_for_table <- predict(rf_classifier,validation1[,-5])
+table(observed=validation1[,5],predicted=prediction_for_table)
+            predicted
+observed     setosa versicolor virginica
+  setosa         29          0         0
+  versicolor      0         20         3
+  virginica       0          1        22
+The confusion matrix is a good way of looking at how good our classifier is performing when presented with new data.
+
+Another way of assessing the performance of our classifier is to generate a ROC curve and compute the area under the curve:
+
+ 
+
+# Validation set assessment #2: ROC curves and AUC
+# Needs to import ROCR package for ROC curve plotting:
+library(ROCR)
+# Calculate the probability of new observations belonging to each class
+# prediction_for_roc_curve will be a matrix with dimensions data_set_size x number_of_classes
+prediction_for_roc_curve <- predict(rf_classifier,validation1[,-5],type="prob")
+# Use pretty colours:
+pretty_colours <- c("#F8766D","#00BA38","#619CFF")
+# Specify the different classes 
+classes <- levels(validation1$Species)
+# For each class
+for (i in 1:3)
+{
+ # Define which observations belong to class[i]
+ true_values <- ifelse(validation1[,5]==classes[i],1,0)
+ # Assess the performance of classifier for class[i]
+ pred <- prediction(prediction_for_roc_curve[,i],true_values)
+ perf <- performance(pred, "tpr", "fpr")
+ if (i==1)
+ {
+     plot(perf,main="ROC Curve",col=pretty_colours[i]) 
+ }
+ else
+ {
+     plot(perf,main="ROC Curve",col=pretty_colours[i],add=TRUE) 
+ }
+ # Calculate the AUC and print it to screen
+ auc.perf <- performance(pred, measure = "auc")
+ print(auc.perf@y.values)
+}
+Here is the final product (ROC curve):
+
+
+
+And here are the values for our AUCs:
+
+Setosa
+AUC = 1
+Versicolor
+AUC = 0.98
+Virginica
+AUC = 0.98
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
