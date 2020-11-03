@@ -76,6 +76,71 @@ terra::writeRaster(asopluspred,'data/asopluspredclippedplanet.tiff')
 y <- c(planet_area_ref_wgs84,asopluspred)
 ```
 
+## plot the raster parallel
+```{r , echo=FALSE}
+#library(rgdal)
+library(ClusterR)
+library(rasterVis)
+library(RColorBrewer)
+
+start_time <- Sys.time()
+  beginCluster()
+  
+```
+```{r , echo=FALSE}
+library(ggplot2)
+planet_84 <- raster::raster('data/planetprojwgs84.tiff')
+gplot(planet_84) + 
+  geom_tile(aes(fill = value))  +
+  viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+```
+## visualize the planet tile
+```{r , echo=FALSE}
+vi2 <- function(x, y) {
+    (x - y) / (x + y)
+}
+ndvi2gunni <- terra::lapp(planet_area_ref_wgs84[[4:3]], fun=vi2)
+
+terra::writeRaster(ndvi2gunni,'data/planetscenendvi.tiff')
+plot(ndvi2gunni, col=rev(terrain.colors(10)), main="Planet-NDVI Gunnison")
+
+```
+##NDVI
+
+```{r , echo=FALSE}
+planet_ndvi <- raster::raster('data/planetscenendvi.tiff')
+gplot(planet_ndvi) + 
+  geom_tile(aes(fill = value))  +
+  viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+```
+# Pred
+```{r , echo=FALSE}
+rpredasoclip <-  raster::stack('data/asopluspredclippedplanet.tiff')
+gplot(rpredasoclip[[2]]) + 
+  geom_tile(aes(fill = value))  +
+  viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+
+```
+
+# ASO
+```{r , echo=FALSE}
+rpredasoclip <-  raster::stack('data/asopluspredclippedplanet.tiff')
+gplot(rpredasoclip[[1]]) + 
+  geom_tile(aes(fill = value))  +
+  viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+
+```
+```{r , echo=FALSE}
+endCluster()
+end_time <- Sys.time()
+end_time - start_time
+
+```
+
 ```{r , echo=FALSE}
 library(rgdal)
 library(rasterVis)
