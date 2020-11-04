@@ -124,6 +124,33 @@ gplot(rpredasoclip[[2]]) +
   theme_bw()
 
 ```
+# put the background
+```{r , echo=FALSE}
+library(ggspatial)
+pred_spec <- as.data.frame(rpredasoclip[[2]],na.rm=TRUE,xy=TRUE)
+names(pred_spec) <- c('value', 'longitude','latitude')
+
+ggplot(pred_spec, aes(longitude, latitude)) +
+  annotation_map_tile(type = "cartolight") +
+  geom_spatial_point() 
+
+gplot(rpredasoclip[[2]]) + 
+  geom_tile(aes(fill = value))  +
+  viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+
+```
+
+extent(rprob
+
+```{r , echo=FALSE}
+library(dismo)
+
+migmap <- gmap(x = rpredasoclip[[2]], type = "hybrid", zoom = 5)
+plot(migmap)
+
+```
+
 
 # ASO
 ```{r , echo=FALSE}
