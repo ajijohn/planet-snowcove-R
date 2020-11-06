@@ -124,9 +124,36 @@ gplot(rpredasoclip[[2]]) +
   theme_bw()
 
 ```
+
+```{r , echo=FALSE}
+library(ggmap)
+# get map
+sq_map <- get_map(location = c(lon = -89.89, lat = 25.68),
+                  maptype = "watercolor",
+                  source = "stamen", zoom=5)
+
+ggmap(sq_map)
+```
+Using ceramic
+```{r , echo=FALSE}
+library('ceramic')
+
+data("wrld_simpl", package = "maptools")
+#im <- cc_location(cbind( -107.1661, 38.81874 ), buffer = 1e5, ype = "mapbox.satellite")
+e_sta <- raster::extent(rpredasoclip)
+im <- cc_location(e_sta, buffer = 1e5, ype = "mapbox.satellite")
+
+#> Preparing to download: 12 tiles at zoom = 6 from 
+#> https://api.mapbox.com/v4/mapbox.light/
+raster::plotRGB(im)
+```
+
 # put the background
 ```{r , echo=FALSE}
 library(ggspatial)
+
+extent_pred <- terra::ext(rpredasoclip[[2]])
+# this is ok
 pred_spec <- as.data.frame(rpredasoclip[[2]],na.rm=TRUE,xy=TRUE)
 names(pred_spec) <- c('value', 'longitude','latitude')
 
