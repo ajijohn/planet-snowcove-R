@@ -181,13 +181,84 @@ plot(migmap)
 
 # ASO
 ```{r , echo=FALSE}
+
 rpredasoclip <-  raster::stack('data/asopluspredclippedplanet.tiff')
 gplot(rpredasoclip[[1]]) + 
+  geom_tile(aes(fill = value))  +
+  viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  #theme_bw() +
+  ggpubr::theme_pubclean() +
+  labs(fill="",x="Longitude",y="Latitude") +  theme(legend.position = "none") 
+
+aso_sample <- gplot(rpredasoclip[[1]]) + 
+  geom_tile(aes(fill = value))  +
+  viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  #theme_bw() +
+  ggpubr::theme_pubclean() +
+  labs(fill="",x="Longitude",y="Latitude") +  theme(legend.position = "none") 
+```
+
+#Prediction
+```{r , echo=FALSE}
+
+gplot(rpredasoclip[[2]]) + 
+  geom_tile(aes(fill = value))  +
+  viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  #theme_bw() +
+  ggpubr::theme_pubclean() +
+  labs(fill="",x="Longitude",y="Latitude") +  theme(legend.position = "none") 
+
+prediction_sample <- gplot(rpredasoclip[[2]]) + 
+  geom_tile(aes(fill = value))  +
+  viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  #theme_bw() +
+  ggpubr::theme_pubclean() +
+  labs(fill="",x="Longitude",y="Latitude") +  theme(legend.position = "none") 
+```
+Area 
+
+```{r }
+ggRGB(im, r=1,g=2, b=3)  +  ggpubr::theme_pubclean() +
+  labs(fill="",x="Longitude",y="Latitude") +  theme(legend.position = "none",axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) 
+area_sample <- ggRGB(im, r=1,g=2, b=3)  +  ggpubr::theme_pubclean() +
+  labs(fill="",x="Longitude",y="Latitude") +  theme(legend.position = "none",axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) 
+```
+
+```{r }
+#(combined_sites | (p2) | (world)) + plot_layout(guides = 'collect')
+library(patchwork)
+layout <- "
+AAAA
+AAAA
+BBCC
+BBCC
+"
+area_sample + aso_sample + prediction_sample +
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = 'A', title = 'Sample Planet scene',
+  subtitle = '',
+  caption = 'Mosaic by Mapbox')
+ggsave("figs/samplearea.png",dpi=300, dev='png',  height=10, width=10,units="in")
+```
+
+```{r , echo=FALSE}
+
+gplot(im[[3]]) + 
   geom_tile(aes(fill = value))  +
   viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
   theme_bw()
 
 ```
+
+
 ```{r , echo=FALSE}
 endCluster()
 end_time <- Sys.time()
