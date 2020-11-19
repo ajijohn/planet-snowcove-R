@@ -50,6 +50,7 @@ x <- c(aso_co,predclip_co)
 plot(x)
 #plot(planet_area[],add=TRUE)
 ```
+
 ```{r , echo=FALSE}
 
 planet_area_ref <- planet_area/10000
@@ -95,6 +96,28 @@ gplot(planet_84) +
   viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
   theme_bw()
 ```
+## plot the RGB
+
+raster::raster('data/planetprojwgs84.tiff')
+```{r , echo=FALSE}
+planet_84_stack <- raster::stack('data/planetprojwgs84.tiff')
+
+ggRGB(planet_84_stack, r=3,g=2, b=1)  +  ggpubr::theme_pubclean() +
+  labs(fill="",x="Longitude",y="Latitude") +  theme(legend.position = "none",axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) 
+
+planet_sample <- ggRGB(planet_84_stack, r=3,g=2, b=1)  +  ggpubr::theme_pubclean() +
+  labs(fill="",x="Longitude",y="Latitude") +  theme(legend.position = "none",axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())
+```
+
+
 ## visualize the planet tile
 ```{r , echo=FALSE}
 vi2 <- function(x, y) {
@@ -125,15 +148,6 @@ gplot(rpredasoclip[[2]]) +
 
 ```
 
-```{r , echo=FALSE}
-library(ggmap)
-# get map
-sq_map <- get_map(location = c(lon = -89.89, lat = 25.68),
-                  maptype = "watercolor",
-                  source = "stamen", zoom=5)
-
-ggmap(sq_map)
-```
 Using ceramic
 ```{r , echo=FALSE}
 library('ceramic')
@@ -169,15 +183,6 @@ gplot(rpredasoclip[[2]]) +
 ```
 
 extent(rprob
-
-```{r , echo=FALSE}
-library(dismo)
-
-migmap <- gmap(x = rpredasoclip[[2]], type = "hybrid", zoom = 5)
-plot(migmap)
-
-```
-
 
 # ASO
 ```{r , echo=FALSE}
@@ -247,6 +252,168 @@ area_sample + aso_sample + prediction_sample +
   subtitle = '',
   caption = 'Mosaic by Mapbox')
 ggsave("figs/samplearea.png",dpi=300, dev='png',  height=10, width=10,units="in")
+```
+Redo the plots with Planet
+planet+sample
+
+```{r }
+#(combined_sites | (p2) | (world)) + plot_layout(guides = 'collect')
+library(patchwork)
+layout <- "
+AAAA
+AAAA
+BBBB
+CCCC
+"
+planet_sample + aso_sample + prediction_sample +
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = 'A', title = 'Sample Planet scene',
+  subtitle = '',
+  caption = 'Panel A copyrighted material of Planet Labs, Inc. All Rights Reserved.')
+ggsave("figs/samplearea_planet.png",dpi=300, dev='png',  height=20, width=15,units="in",limitsize = FALSE)
+```
+Resample veg to match pred
+
+```{r , echo=FALSE}
+
+veg_vegResamp <- raster('data/Gunnison__chm_3p0m.tif')
+newproj <- "+proj=longlat +datum=WGS84"
+pr2 <- projectRaster(veg_vegResamp, crs=newproj,res=res(rpredasoclip))
+writeRaster(pr2, 'data/Gunnison__chm_2point1by1point6.tif', overwrite=TRUE, options="COMPRESS=LZW") 
+veg_crop<-crop(pr2,extent(rpredasoclip))
+
+
+```
+
+Stack the layers with pred and aso
+
+So, two ways of doing it, first crop, or do or find the overlao and crop
+
+```{r }
+
+extent(veg_crop) <- extent(rpredasoclip)
+
+ # calculate overlap between the two datasets
+  overlap <- raster::intersect(extent(rpredasoclip), extent(veg_crop))
+   veg_crop <- crop(veg_crop, overlap)
+  crs(veg_crop) <- crs(rpredasoclip)
+rpredasochmclip <- stack(rpredasoclip,veg_crop)
+
+data_matrix_withchm <- as.data.frame(rasterToPoints(rpredasochmclip))
+head(data_matrix_withchm)
+
+colnames(data_matrix_withchm) <- c('longitude','latitude','aso','pred','canopyheight')
+
+library(caret)
+data_matrix_withchm_filtered <- data_matrix_withchm[complete.cases(data_matrix_withchm),]
+
+confusionMatrix(as.factor(data_matrix_withchm_filtered$aso),as.factor(data_matrix_withchm_filtered$pred),mode = 'prec_recall')
+
+```
+Greater than 1m  (f-score)
+
+```{r }
+data_matrix_withchm_filtered_1 <- data_matrix_withchm_filtered  %>% filter(canopyheight > 1) %>% as.data.frame()
+
+confusionMatrix(as.factor(data_matrix_withchm_filtered_1$aso),as.factor(data_matrix_withchm_filtered_1$pred),mode = 'prec_recall')
+
+```
+
+```{r }
+#(combined_sites | (p2) | (world)) + plot_layout(guides = 'collect')
+library(patchwork)
+layout <- "
+AAAA
+AAAA
+BBCC
+BBCC
+"
+area_sample + aso_sample + prediction_sample +
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = 'A', title = 'Sample Planet scene',
+  subtitle = '',
+  caption = 'Mosaic by Mapbox')
+ggsave("figs/samplearea.png",dpi=300, dev='png',  height=10, width=10,units="in")
+```
+
+Plot along with vegetation metrucs
+
+```{r , echo=FALSE}
+data_matrix <- rasterToPoints(rpredasoclip)
+head(data_matrix)
+datafra_comb <- data_matrix %>% as.data.frame()
+colnames(datafra_comb) <- c('longitude','latitude','aso','pred')
+
+library(caret)
+datafra_comb_filtered <- datafra_comb[complete.cases(datafra_comb),]
+
+```
+
+
+Get the points
+
+```{r , echo=FALSE}
+data_matrix <- rasterToPoints(rpredasoclip)
+head(data_matrix)
+datafra_comb <- data_matrix %>% as.data.frame()
+colnames(datafra_comb) <- c('longitude','latitude','aso','pred')
+
+library(caret)
+datafra_comb_filtered <- datafra_comb[complete.cases(datafra_comb),]
+
+```
+
+```{r , echo=FALSE}
+confusionMatrix(as.factor(datafra_comb_filtered$aso),as.factor(datafra_comb_filtered$pred),mode = 'prec_recall')
+```
+
+
+Accuracy assesment by only extracting the pixel values
+
+
+# get values
+```{r , echo=FALSE}
+
+aso_df <- raster::extract(rpredasoclip[[1]], raster::extent(rpredasoclip))
+pred_df <- raster::extract(rpredasoclip[[2]], raster::extent(rpredasoclip))
+
+aso_df <- as.data.frame(aso_df)
+pred_df <- as.data.frame(pred_df)
+
+df <- data.frame(aso_df,pred_df)
+colnames(df) <- c('aso','pred')
+```
+
+# Far more efficient, sum the layers
+```{r , echo=FALSE}
+library(caret)
+df_filtered <- df[complete.cases(df),]
+#confusionMatrix(df$aso,df$pred,mode = 'prec_recall')
+```
+
+```{r , echo=FALSE}
+confusionMatrix(as.factor(df_filtered$aso),as.factor(df_filtered$pred),mode = 'prec_recall')
+```
+
+Lets add NDVI classification
+
+```{r , echo=FALSE}
+
+data_matrix_ndvi <- as.data.frame(rasterToPoints(planet_ndvi))
+head(data_matrix_ndvi)
+colnames(data_matrix_ndvi) <- c('longitude','latitude','ndvi')
+
+
+```
+
+left outer join
+
+```{r , echo=FALSE}
+library(dplyr)
+matchasopredndvi <- datafra_comb_filtered %>% full_join(data_matrix_ndvi)
+
+library(caret)
+matchasopredndvi_filtered <- matchasopredndvi[complete.cases(matchasopredndvi),]
 ```
 
 ```{r , echo=FALSE}
