@@ -69,7 +69,7 @@ reproject fails
 crop
 
 ```{r, echo=FALSE}
-aso_crop<-crop(aso,extent(planet_repr))
+aso_crop<-crop(aso,extent(planet))
 ```
 
 stack the m all, but reproject first, aso is finer
@@ -171,3 +171,44 @@ study_84_df$snow_nosnow <- as.factor(study_84_df$snow_nosnow)
 rf1 <- randomForest(formula=snow_nosnow ~., data=study_84_df, ntree=500, mtry=10)
 
 ```
+
+```{r, echo=FALSE}
+library(ranger)
+library(doMC)
+library(raster)
+aso_crop_foxr <- raster('aso_wgs84_final_match.tif')
+planet_84 <- stack('planet_wgs84_final_match.tif')
+
+study_84 <- raster::stack(aso_crop_foxr,planet_84)
+names(study_84) = c( "snow_nosnow","blue", "green" ,"red","nir")
+study_84_df <- study_84  %>% as.data.frame() %>% drop_na() %>% as.data.frame()
+study_84_df$snow_nosnow <- as.factor(study_84_df$snow_nosnow)
+
+doMC::registerDoMC(cores=4)
+#rf1 <- randomForest(formula=snow_nosnow ~., data=study_84_df, ntree=5, mtry=4)
+rf <- foreach(ntree=seq(1, 10), .combine=randomForest::combine,
+              .multicombine=TRUE, .packages='randomForest') %dopar% {
+    randomForest(formula=snow_nosnow ~., data=study_84_df,  mtry=4, ntree=ntree)
+}
+```
+
+```{r, echo=FALSE}
+library(ranger)
+library(doMC)
+library(raster)
+aso_crop_foxr <- raster('aso_wgs84_final_match.tif')
+planet_84 <- stack('planet_wgs84_final_match.tif')
+
+study_84 <- raster::stack(aso_crop_foxr,planet_84)
+names(study_84) = c( "snow_nosnow","blue", "green" ,"red","nir")
+study_84_df <- study_84  %>% as.data.frame() %>% drop_na() %>% as.data.frame()
+study_84_df$snow_nosnow <- as.factor(study_84_df$snow_nosnow)
+
+doMC::registerDoMC(cores=4)
+#rf1 <- randomForest(formula=snow_nosnow ~., data=study_84_df, ntree=5, mtry=4)
+rf <- foreach(ntree=seq(1, 10), .combine=randomForest::combine,
+              .multicombine=TRUE, .packages='randomForest') %dopar% {
+    randomForest(formula=snow_nosnow ~., data=study_84_df,  mtry=4, ntree=ntree)
+}
+```
+

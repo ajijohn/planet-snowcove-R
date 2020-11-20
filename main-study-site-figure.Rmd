@@ -1,0 +1,133 @@
+---
+title: "Site"
+author: "Aji John"
+date: "11/19/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r }
+library("rnaturalearth")
+library("rnaturalearthdata")
+library("sf")
+world <- ne_countries(scale = "medium", returnclass = "sf")
+worldcl <- ne_coastline(scale = "medium", returnclass = "sf")
+class(world)
+world <- ggplot(data = world) +
+    geom_sf() +
+    coord_sf(crs = 4326)+
+   geom_polygon(data=Sites_2013,aes(longitude, latitude, group = 1), fill = 'red', color = "red",size=6) +     
+  annotation_scale(location = "bl", width_hint = 0.5) +
+    annotation_north_arrow(location = "bl", which_north = "true", 
+        pad_x = unit(0.75, "in"), pad_y = unit(0.5, "in"),
+        style = north_arrow_fancy_orienteering) +
+  labs(x='',  y='')  + theme(panel.grid.major = element_line(color = gray(.5), linetype = 'dashed', size = 0.5), panel.background = element_rect(fill = 'aliceblue'))
+world_tl <- ggplot(data = worldcl) +
+    geom_sf() +
+    coord_sf(crs = 4326)+
+   geom_polygon(data=Sites_2013,aes(longitude, latitude, group = 1), fill = 'red', color = "red",size=6) +     
+  annotation_scale(location = "bl", width_hint = 0.5) +
+    annotation_north_arrow(location = "bl", which_north = "true", 
+        pad_x = unit(0.75, "in"), pad_y = unit(0.5, "in"),
+        style = north_arrow_fancy_orienteering) +
+  labs(x='',  y='')  + theme(panel.grid.major = element_line(color = gray(.5), linetype = 'dashed', size = 0.5), panel.background = element_rect(fill = 'aliceblue'))
+world_tl1 <- ggplot(data = worldcl) +
+    geom_sf() +
+    coord_sf(crs = 4326)+
+   geom_polygon(data=Sites_2013,aes(longitude, latitude, group = 1), fill = 'red', color = "red",size=6) +     
+ # annotation_scale(location = "bl", width_hint = 0.5) +
+    annotation_north_arrow(location = "bl", which_north = "true", 
+        pad_x = unit(0.75, "in"), pad_y = unit(0.5, "in"),
+        style = north_arrow_fancy_orienteering) +
+  labs(x='',  y='')  + theme(panel.grid.major = element_line(color = gray(.5), linetype = 'dashed', size = 0.5), panel.background = element_rect(fill = 'aliceblue'))
+```
+
+
+```{r }
+library(ggplot2)
+library(dplyr)
+
+WorldData <- map_data('world') %>% filter(region != "Antarctica") %>% fortify
+
+df <- data.frame(region=c('Hungary','Lithuania','Argentina'), 
+                 value=c(4,10,11), 
+                 stringsAsFactors=FALSE)
+
+p <- ggplot() +
+    geom_map(data = WorldData, map = WorldData,
+                  aes(x = long, y = lat, group = group, map_id=region),
+                  fill = "white", colour = "#7f7f7f", size=0.5) + 
+    geom_map(data = df, map=WorldData,
+                  aes(fill=value, map_id=region),
+                  colour="#7f7f7f", size=0.5) +
+    coord_map("rectangular", lat0=0, xlim=c(-180,180), ylim=c(-60, 90)) +
+    scale_fill_continuous(low="thistle2", high="darkred", guide="colorbar") +
+    scale_y_continuous(breaks=c()) +
+    scale_x_continuous(breaks=c()) +
+    labs(fill="legend", title="Title", x="", y="") +
+    theme_bw()
+p 
+```
+
+```{r }
+p2 <- ggplot() +
+    geom_map(data = WorldData, map = WorldData,
+                  aes(x = long, y = lat, group = group, map_id=region),
+                  fill = "white", colour = "#7f7f7f", size=0.5) + 
+    coord_map("rectangular", lat0=0, xlim=c(-180,180), ylim=c(-60, 90)) +
+    scale_fill_continuous(low="thistle2", high="darkred", guide="colorbar") +
+    scale_y_continuous(breaks=c()) +
+    scale_x_continuous(breaks=c()) +
+    labs(fill="legend", title="Title", x="", y="") +
+    geom_point(aes(x = -119.25, y=37.89), label = 'Upper Tuolumne',  size = 4) + 
+    geom_point(aes( x = -107.14, y=39.08), label = 'Upper Gunnison', size = 4) +
+    annotate("text", x = -119.25, y=37.89, label = 'Upper Tuolumne', hjust = -0.5,vjust=0.5, colour = "black",size = 3) +     annotate("text", x = -107.14, y=39.08, label = 'Upper Gunnison', hjust = 0.1, colour = "black", size = 3) +
+     ggpubr::theme_pubclean() 
+
+p2
+```
+
+Us only map
+
+```{r }
+library(usmap)
+library(ggplot2)
+
+library(maps)
+us_states <- map_data("state")
+
+p <- ggplot(data = us_states,
+            mapping = aes(x = long, y = lat,
+                          group = group))
+
+p + geom_polygon(fill="white",color = "black", size = 0.2) +
+    coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
+     geom_point(aes(x = -120.2413, y=37.9627), ,size=3, label = 'Upper Tuolumne',  color = "red", alpha = 0.25) + 
+    geom_point(aes(x = -106.9253, y=38.5458),,size=3, label = 'Upper Gunnison', color = "red", alpha = 0.25) +
+   annotate("text", x = -119.25, y=37.89, label = 'Upper Tuolumne', hjust = 0.1,, colour = "black",size = 3) +     annotate("text", x = -107.14, y=39.08, label = 'Upper Gunnison', hjust = 0.1, colour = "black", size = 3) +
+    guides(fill= FALSE) + theme_minimal(base_size = 15)+
+   #theme_classic() +
+  labs(title = "Study Sites", seze="", x= "Longitude", y="Latitude",
+       subtitle = "Source: ") +
+   theme(panel.grid.major = element_line(color = gray(.5), linetype = 'dashed', size = 0.5), panel.background = element_rect(fill = 'aliceblue'))
+
+ggsave("figs/studysites.png",dpi=300, dev='png',units="in")
+
+```
