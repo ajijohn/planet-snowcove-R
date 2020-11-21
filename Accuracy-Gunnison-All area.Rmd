@@ -1,5 +1,5 @@
 ---
-title: "Accuracy-Gunnison"
+title: "Accuracy-Gunnison-All with canopy"
 author: "Aji John"
 date: "10/30/2020"
 output: html_document
@@ -10,72 +10,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r}
-library(terra)
-```
-
-## Stack the layers
-
-You can also embed plots, for example:
-
-```{r , echo=FALSE}
-aso_co <- rast('data/dem_stackedco_demandfriendsnormalized_asov3.tiff')
-pred_co <- rast('data/dem_stackedco_demandfriendsnormalized_predv3.tiff')
-```
-
-
-## Lets stack them
-```{r , echo=FALSE}
-e <- ext(aso_co)
-# crop landsat by the extent
-planetcrop <- crop(pred_co, e)
-writeRaster(planetcrop, filename="data/cropped-dem_stackedco_demandfriendsnormalized_predv3.tiff", overwrite=TRUE)
-x <- c(aso_co,planetcrop)
-```
-
-# Accuracy assesment for only one scene 20180524_172634_0f2d_3B_AnalyticMS_SR
-#read the clipped pred
-```{r , echo=FALSE}
-library(terra)
-aso_co <- rast('data/dem_stackedco_demandfriendsnormalized_asov3.tiff')
-predclip_co <- rast('data/cropped-dem_stackedco_demandfriendsnormalized_predv3.tiff')
-planet_area <- rast('data/20180524_172634_0f2d_3B_AnalyticMS_SR.tif')
-x <- c(aso_co,predclip_co)
-# create shapefile
-plot(x)
-#plot(planet_area[],add=TRUE)
-```
-
-```{r , echo=FALSE}
-
-planet_area_ref <- planet_area/10000
-plotRGB(planet_area_ref, r=3, g=2, b=1, axes=TRUE, stretch="lin", main="Planet False Color Composite")
-```
-Reproject 
-
-```{r , echo=FALSE}
-
-
-crs_latlong <-crs("+proj=longlat +datum=WGS84")
-
-planet_area_ref_wgs84 <- terra::project(planet_area_ref,crs_latlong)
-aso_pred_wgs84 <- terra::project(x,crs_latlong)
-terra::writeRaster(planet_area_ref_wgs84,'data/planetprojwgs84.tiff')
-plot(planet_area_ref_wgs84)
-```
-crop the predicted and aso with planet extent 
-
-```{r , echo=FALSE}
-
-asopluspred <- terra::crop(x, terra::ext(planet_area_ref_wgs84))
-terra::writeRaster(asopluspred,'data/asopluspredclippedplanet.tiff')
-y <- c(planet_area_ref_wgs84,asopluspred)
-```
 
 ## plot the raster parallel
 ```{r , echo=FALSE}
@@ -88,28 +22,49 @@ start_time <- Sys.time()
   beginCluster()
   
 ```
-```{r , echo=FALSE}
-library(ggplot2)
-planet_84 <- raster::raster('data/planetprojwgs84.tiff')
-gplot(planet_84) + 
-  geom_tile(aes(fill = value))  +
-  viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
-  theme_bw()
+
+
+
+```{r}
+#library(terra)
 ```
+
+## Stack the layers
+
+You can also embed plots, for example:
+
+```{r , echo=FALSE}
+aso_co <- raster('data/dem_stackedco_demandfriendsnormalized_asov3.tiff')
+pred_co <- raster('data/dem_stackedco_demandfriendsnormalized_predv3.tiff')
+```
+
+
+## Lets stack them
+```{r , echo=FALSE}
+
+# fails
+xy_crop <- stack(aso_co,pred_co)
+
+aso_prj <- projectRaster(aso_co,pred_co, method="ngb")
+extent(aso_prj)
+extent(pred_co)
+
+# succeeds 
+xy_stack <- stack(aso_prj,pred_co)
+
+
+
+```
+
+
+
 ## plot the RGB
 
-raster::raster('data/planetprojwgs84.tiff')
+
 ```{r , echo=FALSE}
-planet_84_stack <- raster::stack('data/planetprojwgs84.tiff')
 
-ggRGB(planet_84_stack, r=3,g=2, b=1)  +  ggpubr::theme_pubclean() +
-  labs(fill="",x="Longitude",y="Latitude") +  theme(legend.position = "none",axis.title.x=element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank(),axis.title.y=element_blank(),
-        axis.text.y=element_blank(),
-        axis.ticks.y=element_blank()) 
 
-planet_sample <- ggRGB(planet_84_stack, r=3,g=2, b=1)  +  ggpubr::theme_pubclean() +
+entire_co <- ggplot(xy_stack)  +  ggpubr::theme_pubclean() +
   labs(fill="",x="Longitude",y="Latitude") +  theme(legend.position = "none",axis.title.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),axis.title.y=element_blank(),
@@ -118,35 +73,6 @@ planet_sample <- ggRGB(planet_84_stack, r=3,g=2, b=1)  +  ggpubr::theme_pubclean
 ```
 
 
-## visualize the planet tile
-```{r , echo=FALSE}
-vi2 <- function(x, y) {
-    (x - y) / (x + y)
-}
-ndvi2gunni <- terra::lapp(planet_area_ref_wgs84[[4:3]], fun=vi2)
-
-terra::writeRaster(ndvi2gunni,'data/planetscenendvi.tiff')
-plot(ndvi2gunni, col=rev(terrain.colors(10)), main="Planet-NDVI Gunnison")
-
-```
-##NDVI
-
-```{r , echo=FALSE}
-planet_ndvi <- raster::raster('data/planetscenendvi.tiff')
-gplot(planet_ndvi) + 
-  geom_tile(aes(fill = value))  +
-  viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
-  theme_bw()
-```
-# Pred
-```{r , echo=FALSE}
-rpredasoclip <-  raster::stack('data/asopluspredclippedplanet.tiff')
-gplot(rpredasoclip[[2]]) + 
-  geom_tile(aes(fill = value))  +
-  viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
-  theme_bw()
-
-```
 
 Using ceramic
 ```{r , echo=FALSE}
@@ -154,7 +80,7 @@ library('ceramic')
 
 data("wrld_simpl", package = "maptools")
 #im <- cc_location(cbind( -107.1661, 38.81874 ), buffer = 1e5, ype = "mapbox.satellite")
-e_sta <- raster::extent(rpredasoclip)
+e_sta <- raster::extent(xy_stack)
 im <- cc_location(e_sta, buffer = 1e5, ype = "mapbox.satellite")
 
 #> Preparing to download: 12 tiles at zoom = 6 from 
@@ -164,18 +90,10 @@ raster::plotRGB(im)
 
 # put the background
 ```{r , echo=FALSE}
-library(ggspatial)
+#library(ggspatial)
 
-extent_pred <- terra::ext(rpredasoclip[[2]])
-# this is ok
-pred_spec <- as.data.frame(rpredasoclip[[2]],na.rm=TRUE,xy=TRUE)
-names(pred_spec) <- c('value', 'longitude','latitude')
 
-ggplot(pred_spec, aes(longitude, latitude)) +
-  annotation_map_tile(type = "cartolight") +
-  geom_spatial_point() 
-
-gplot(rpredasoclip[[2]]) + 
+gplot(xy_stack[[1]]) + 
   geom_tile(aes(fill = value))  +
   viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
   theme_bw()
@@ -187,15 +105,9 @@ extent(rprob
 # ASO
 ```{r , echo=FALSE}
 
-rpredasoclip <-  raster::stack('data/asopluspredclippedplanet.tiff')
-gplot(rpredasoclip[[1]]) + 
-  geom_tile(aes(fill = value))  +
-  viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
-  #theme_bw() +
-  ggpubr::theme_pubclean() +
-  labs(fill="",x="Longitude",y="Latitude") +  theme(legend.position = "none") 
 
-aso_sample <- gplot(rpredasoclip[[1]]) + 
+
+aso_all<- gplot(xy_stack[[1]]) + 
   geom_tile(aes(fill = value))  +
   viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
   #theme_bw() +
@@ -206,14 +118,9 @@ aso_sample <- gplot(rpredasoclip[[1]]) +
 #Prediction
 ```{r , echo=FALSE}
 
-gplot(rpredasoclip[[2]]) + 
-  geom_tile(aes(fill = value))  +
-  viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
-  #theme_bw() +
-  ggpubr::theme_pubclean() +
-  labs(fill="",x="Longitude",y="Latitude") +  theme(legend.position = "none") 
 
-prediction_sample <- gplot(rpredasoclip[[2]]) + 
+
+prediction_all <- gplot(xy_stack[[2]]) + 
   geom_tile(aes(fill = value))  +
   viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
   #theme_bw() +
@@ -291,16 +198,22 @@ So, two ways of doing it, first crop, or do or find the overlao and crop
 
 ```{r }
 
-extent(veg_crop) <- extent(rpredasoclip)
+
+veg_all <- raster('data/Gunnison__chm_2point1by1point6.tif')
+
+veg_crop_gunni<-crop(veg_all,extent(xy_stack))
 
  # calculate overlap between the two datasets
-  overlap <- raster::intersect(extent(rpredasoclip), extent(veg_crop))
-   veg_crop <- crop(veg_crop, overlap)
-  crs(veg_crop) <- crs(rpredasoclip)
-rpredasochmclip <- stack(rpredasoclip,veg_crop)
+ overlap <- raster::intersect(extent(xy_stack), extent(veg_crop_gunni))
+  veg_crop_gunni <- crop(veg_crop_gunni, overlap)
+  xy_crop <-  crop(xy_stack, overlap)
+  
+extent(veg_crop_gunni) <- extent(xy_crop)
+  
+rpredasochmall <- stack(xy_crop,veg_crop_gunni)
 
-data_matrix_withchm <- as.data.frame(rasterToPoints(rpredasochmclip))
-head(data_matrix_withchm)
+data_matrix_withchm <- as.data.frame(rasterToPoints(rpredasochmall))
+head(rpredasochmall)
 
 colnames(data_matrix_withchm) <- c('longitude','latitude','aso','pred','canopyheight')
 
@@ -310,22 +223,6 @@ data_matrix_withchm_filtered <- data_matrix_withchm[complete.cases(data_matrix_w
 confusionMatrix(as.factor(data_matrix_withchm_filtered$aso),as.factor(data_matrix_withchm_filtered$pred),mode = 'prec_recall')
 
 ```
-Entire planet Scene - Create plots
-
-```{r }
-class <- c("Accuracy", "Precision","Recall","F-score","Balanced Accuracy","Kappa")
-metrics<- c(0.9,0.9585 ,0.9264 , 0.9422, 0.8175 ,0.5747   )
-library(tidyverse)
-perf<- data.frame(class, metrics)
-colnames(perf) <- c('class','f_score')
-perf %>% ggplot() + geom_bar(aes(class,metrics),stat="identity") +
- labs(x="Scores" , y="Metrics",subtitle="Sample Planet-Scene") + theme_minimal(base_size = 12)+
-  ggpubr::theme_pubclean()
-ggsave(filename = "figs/sampleplanet.png",dpi = 300,height=4,width=8,units="in")
-
-```
-
-
 Greater than 1m  (f-score)
 
 ```{r }
@@ -334,22 +231,6 @@ data_matrix_withchm_filtered_1 <- data_matrix_withchm_filtered  %>% filter(canop
 confusionMatrix(as.factor(data_matrix_withchm_filtered_1$aso),as.factor(data_matrix_withchm_filtered_1$pred),mode = 'prec_recall')
 
 ```
-
-Plot the graph
-
-```{r }
-class <- c("Accuracy", "Precision","Recall","F-score","Balanced Accuracy","Kappa")
-metrics<- c(0.8696,0.9590,0.8939 , 0.9253, 0.7678,0.417  )
-library(tidyverse)
-perf<- data.frame(class, metrics)
-colnames(perf) <- c('class','f_score')
-perf %>% ggplot() + geom_bar(aes(class,metrics),stat="identity") +
- labs(x="Scores" , y="Metrics",subtitle="Sample Planet-Scene for Canopy height > 1m") + theme_minimal(base_size = 12)+
-  ggpubr::theme_pubclean()
-ggsave(filename = "figs/above-canopy1msample.png",dpi = 300,height=4,width=8,units="in")
-
-```
-
 
 ```{r }
 #(combined_sites | (p2) | (world)) + plot_layout(guides = 'collect')
