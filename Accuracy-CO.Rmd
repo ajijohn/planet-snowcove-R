@@ -1,0 +1,160 @@
+---
+title: "Accuracy-CO- Entire prediction"
+author: "Aji John"
+date: "10/28/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+```{r }
+library(raster)
+```
+
+## Plot the stuff 
+
+ASO
+```{r pressure, echo=FALSE}
+aso<- raster('data/dem_stackedco_demandfriendsnormalized_asov3.tiff')
+pred <- raster('data/dem_stackedco_demandfriendsnormalized_predv3.tiff')
+
+plot(aso)
+```
+
+Prediction
+
+```{r , echo=FALSE}
+
+plot(pred)
+```
+Stacking fails because of extent mimatch
+
+```{r , echo=FALSE}
+extent(aso)
+extent(pred)
+df <- stack(aso,pred)
+```
+>class      : RasterLayer 
+dimensions : 23037, 20992, 483592704  (nrow, ncol, ncell)
+resolution : 2.145767e-05, 1.670038e-05  (x, y)
+extent     : -107.2156, -106.7651, 38.71124, 39.09596  (xmin, xmax, ymin, ymax)
+crs        : +proj=utm +zone=13 +datum=WGS84 +units=m +no_defs 
+source     : /Users/ajijohn/git/planet-snowcove-R/data/dem_stackedco_demandfriendsnormalized_asov3.tiff 
+names      : dem_stackedco_demandfriendsnormalized_asov3 
+values     : -32768, 32767  (min, max)
+
+> 
+> pred
+class      : RasterLayer 
+dimensions : 23038, 20992, 483613696  (nrow, ncol, ncell)
+resolution : 2.145767e-05, 1.670017e-05  (x, y)
+extent     : -107.2156, -106.7651, 38.71122, 39.09596  (xmin, xmax, ymin, ymax)
+crs        : +proj=utm +zone=13 +datum=WGS84 +units=m +no_defs 
+source     : /Users/ajijohn/git/planet-snowcove-R/data/dem_stackedco_demandfriendsnormalized_predv3.tiff 
+names      : dem_stackedco_demandfriendsnormalized_predv3 
+values     : -32768, 32767  (min, max)
+
+
+
+```{r , echo=FALSE}
+aso_prj <- projectRaster(aso,pred)
+extent(aso_prj)
+extent(pred)
+writeRaster(aso_prj, filename="data/dem_stackedco_demandfriendsnormalized_asov3_reprg.tiff", format="GTiff", overwrite=TRUE)
+```
+
+
+```{r , echo=FALSE}
+df <- stack(aso_prj,pred)
+plot(aso_prj)
+```
+
+```{r , echo=FALSE}
+data_matrix <- rasterToPoints(df)
+head(data_matrix)
+
+```
+
+```{r , echo=FALSE}
+library(tidyverse)
+datafra_comb <- data_matrix %>% as.data.frame()
+```
+
+```{r , echo=FALSE}
+library(tidyverse)
+
+datafra_comb %>%summarise_all(~ sum(is.na(.)))
+```
+No effect on dropping of NAs
+```{r , echo=FALSE}
+datafra_comb_dropna <- datafra_comb %>% filter_all(any_vars(!is.na(.))) %>% as.data.frame()
+
+#datafra_comb_dropna %>% filter(demnormalized_stacked_predv3 < 0) %>% tally()
+```
+Remove NAs
+
+```{r , echo=FALSE}
+datafra_comb_fixed <- datafra_comb_dropna[complete.cases(datafra_comb_dropna),]
+
+```
+Not used now
+
+```{r , echo=FALSE}
+#vals_pred <- getValues(pred)
+#vals_aso <- getValues(aso_prj)
+
+```
+
+```{r , echo=FALSE}
+datafra_comb_dropna_mod <- datafra_comb_dropna
+
+```
+
+
+```{r , echo=FALSE}
+library(caret)
+colnames(datafra_comb_fixed) <- c('longitude','latitude','aso','pred')
+
+datafra_comb_fixed$aso <- round(datafra_comb_fixed$aso)
+perf<- confusionMatrix(as.factor(datafra_comb_fixed$aso), as.factor(datafra_comb_fixed$pred),mode = "prec_recall")
+```
+
+```{r , echo=FALSE}
+perf
+
+```
+
+```{r , echo=FALSE}
+class <- c("Accuracy", "Precision","Recall","F-score","Balanced Accuracy","Kappa")
+metrics<- c(0.8995,0.9456 ,0.9273 , 0.9364, 0.8585 ,0.6971   )
+library(tidyverse)
+perf<- data.frame(class, metrics)
+colnames(perf) <- c('class','f_score')
+perf %>% ggplot() + geom_bar(aes(class,metrics),stat="identity") +
+ labs(x="Scores" , y="Metrics",subtitle="Gunnison basin performance") + theme_minimal(base_size = 12)+
+  ggpubr::theme_pubclean()
+ggsave(filename = "figs/allpreditCO.png",dpi = 300,height=4,width=8,units="in")
+```
+
+stack vegetation, need to do some stuff 
+
+```{r , echo=FALSE}
+veg_all <- raster('data/Gunnison__chm_2point1by1point6.tif')
+# calculate overlap between the two datasets
+overlap <- raster::intersect(extent(df), extent(veg_all))
+veg_crop_allpred <- crop(veg_all, overlap)
+
+# extents are still diff , res is slightly diff too
+
+crs(veg_crop_allpred) <- crs(df)
+extent(veg_crop_allpred) <- extent(df)
+
+allpredwithveg <- stack(df,veg_crop_allpred)
+```
+
+       
