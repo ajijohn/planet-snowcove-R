@@ -14,8 +14,31 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r }
 library(ForestGapR)
+library(fieldRS)
 library(viridis)
 ```
+
+```{r , echo=FALSE}
+k.img <- unsuperClass(planet_ndvi, nSamples=5000, nClasses=5)$map
+plot(k.img)
+```
+```{r , echo=FALSE}
+ndvi.max <- calc(planet_ndvi, fun=max) # derive maximum NDVI composite)
+seg.img <- ccLabel(ndvi.max, method="spatial", change.threshold=5)$regions # segment NDVI image
+```
+
+
+```{r , echo=FALSE}
+seg.img <- pixFilter(seg.img, 10, "erode")
+```
+
+
+Finally, we will use extractFields() to derive polygons for each segment. This function will draw a polygon based on the extent of each segment. This can be useful when dealing with noisy images as the ones used in this example. However, as the plot below shows, the output might still require some manual editing.
+
+```{r , echo=FALSE}
+fields <- extractFields(seg.img, method="complex")
+```
+
 
 ## Including Plots
 
@@ -23,14 +46,14 @@ You can also embed plots, for example:
 
 ```{r , echo=FALSE}
 # Plotting chm
-plot(veg_crop_allpred, col=viridis(10))
+#plot(veg_crop, col=viridis(10))
  
 # Setting height thresholds (e.g. 10 meters)
-threshold<-10
-size<-c(1,1000) # m2
+threshold<-2
+size<-c(1,100) # m2
 
 # Detecting forest gaps
-gaps_duc<-getForestGaps(chm_layer=veg_crop_allpred, threshold=threshold, size=size)
+gaps_duc<-getForestGaps(chm_layer=veg_crop, threshold=threshold, size=size)
 
 # Plotting gaps
 plot(gaps_duc, col="red", add=TRUE, main="Forest Canopy Gap", legend=FALSE)

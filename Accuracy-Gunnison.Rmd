@@ -304,6 +304,24 @@ veg_crop<-crop(pr2,extent(rpredasoclip))
 
 ```
 
+```{r , echo=FALSE}
+pr2 <- raster('data/Gunnison__chm_2point1by1point6.tif')
+veg_crop<-crop(pr2,extent(rpredasoclip))
+
+
+```
+
+```{r }
+extent(veg_crop) <- extent(rpredasoclip)
+
+ # calculate overlap between the two datasets
+  overlap <- raster::intersect(extent(rpredasoclip), extent(veg_crop))
+   veg_crop <- crop(veg_crop, overlap)
+  crs(veg_crop) <- crs(rpredasoclip)
+rpredasochmclip <- stack(rpredasoclip,veg_crop)
+```
+
+
 Stack the layers with pred and aso
 
 So, two ways of doing it, first crop, or do or find the overlao and crop
