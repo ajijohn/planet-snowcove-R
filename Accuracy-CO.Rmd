@@ -11,6 +11,17 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## R Markdown
 
+```{r , echo=FALSE}
+#library(rgdal)
+library(ClusterR)
+library(rasterVis)
+library(RColorBrewer)
+
+start_time <- Sys.time()
+  beginCluster()
+  
+```
+
 
 ```{r }
 library(raster)
@@ -66,6 +77,12 @@ aso_prj <- projectRaster(aso,pred)
 extent(aso_prj)
 extent(pred)
 writeRaster(aso_prj, filename="data/dem_stackedco_demandfriendsnormalized_asov3_reprg.tiff", format="GTiff", overwrite=TRUE)
+```
+
+Get reprojected ASO
+
+```{r , echo=FALSE}
+aso_prj <- raster("data/dem_stackedco_demandfriendsnormalized_asov3_reprg.tif")
 ```
 
 
@@ -155,6 +172,127 @@ crs(veg_crop_allpred) <- crs(df)
 extent(veg_crop_allpred) <- extent(df)
 
 allpredwithveg <- stack(df,veg_crop_allpred)
+
+stackSave(allpredwithveg, 'data/gunnisonwithpredandaso.tiff')
+
+# saved as ASO-reprojectred, Prediction and Canopy height
+writeRaster(allpredwithveg, "data/gunnisonwithpredandasomulti_final.tif", 
+						options=c("INTERLEAVE=BAND"), overwrite=TRUE)
+
+ 
 ```
 
-       
+    
+    
+```{r , echo=FALSE}
+data_matrixwithveg <- as.data.frame(rasterToPoints(allpredwithveg))
+head(data_matrixwithveg)
+colnames(data_matrixwithveg) <- c('longitude','latitude','aso','pred','canopyheight')
+data_matrixwithveg_filtered <- data_matrixwithveg[complete.cases(data_matrixwithveg),]
+
+```
+
+```{r , echo=FALSE}
+library(caret)
+colnames(data_matrixwithveg) <- c('longitude','latitude','aso','pred','canopyheight')
+
+colnames(data_matrixwithveg) <- c('longitude','latitude','aso','pred','canopyheight')
+data_matrixwithveg_filtered$aso <- round(data_matrixwithveg_filtered$aso)
+
+confusionMatrix(as.factor(data_matrixwithveg_filtered$aso),as.factor(data_matrixwithveg_filtered$pred),mode = 'prec_recall')
+
+```
+Above 1m 
+
+```{r , echo=FALSE}
+#get vegetation grea
+
+data_matrixwithveg_filtered_1 <- data_matrixwithveg_filtered %>% filter(canopyheight > 1) %>% as.data.frame()
+
+confusionMatrix(as.factor(data_matrixwithveg_filtered_1$aso),as.factor(data_matrixwithveg_filtered_1$pred),mode = 'prec_recall')
+```
+
+```{r , echo=FALSE}
+class <- c("Accuracy", "Precision","Recall","F-score","Balanced Accuracy")
+metrics<- c(0.878 ,0.9539  ,0.9021 , 0.9273, 0.8148   )
+library(tidyverse)
+perf<- data.frame(class, metrics)
+colnames(perf) <- c('class','f_score')
+perf %>% ggplot() + geom_bar(aes(class,metrics),stat="identity") +
+ labs(x="Scores" , y="Metrics",subtitle="Gunnison basin performance > 1m ") + theme_minimal(base_size = 12)+
+  ggpubr::theme_pubclean()
+ggsave(filename = "figs/allpreditCOgt1m.png",dpi = 300,height=4,width=8,units="in")
+```
+
+Below one
+
+```{r , echo=FALSE}
+#get vegetation grea
+
+data_matrixwithveg_filtered_0 <- data_matrixwithveg_filtered %>% filter(canopyheight < 1) %>% as.data.frame()
+
+confusionMatrix(as.factor(data_matrixwithveg_filtered_0$aso),as.factor(data_matrixwithveg_filtered_0$pred),mode = 'prec_recall')
+```
+
+```{r , echo=FALSE}
+class <- c("Accuracy", "Precision","Recall","F-score","Balanced Accuracy")
+metrics<- c(0.9345 ,0.9305  ,0.9785 , 0.9539, 0.9069   )
+library(tidyverse)
+perf<- data.frame(class, metrics)
+colnames(perf) <- c('class','f_score')
+perf %>% ggplot() + geom_bar(aes(class,metrics),stat="identity") +
+ labs(x="Scores" , y="Metrics",subtitle="Gunnison basin performance < 1m ") + theme_minimal(base_size = 12)+
+  ggpubr::theme_pubclean()
+ggsave(filename = "figs/allpreditCOlt 1m.png",dpi = 300,height=4,width=8,units="in")
+```
+
+```{r , echo=FALSE}
+class <- c("Accuracy", "Precision","Recall","F-score","Balanced Accuracy")
+metricslt1<- c(0.9345 ,0.9305  ,0.9785 , 0.9539, 0.9069   )
+type <- rep('OA',5)
+library(tidyverse)
+perflt1<- data.frame(class, metricslt1,type)
+colnames(perflt1) <- c('class','f_score','tofc')
+
+class <- c("Accuracy", "Precision","Recall","F-score","Balanced Accuracy")
+metrics<- c(0.878 ,0.9539  ,0.9021 , 0.9273, 0.8148   )
+type <- rep('FA',5)
+
+perfgt1<- data.frame(class, metrics,type)
+colnames(perfgt1) <- c('class','f_score','tofc')
+
+perf <- rbind(perflt1,perfgt1)
+
+perf %>% mutate(score = round(f_score,2)) %>% 
+  ggplot() + geom_bar(aes(class,score,fill = tofc), position = "dodge",stat="identity", width=.5) +
+   geom_text(aes(class,score,label=score, group=tofc), position=position_dodge(width=0.5), vjust=-0.3) +
+ labs(x="" , y="",subtitle="",fill="") + theme_minimal(base_size = 18)+
+  ggpubr::theme_pubclean()
+ggsave(filename = "figs/allpreditCO_both_rev.png",dpi = 300,height=4,width=8,units="in")
+
+
+```
+
+```{r , echo=FALSE}
+library(ggplot2)
+
+DF <- structure(list(Type = structure(c(1L, 2L, 1L, 2L, 1L, 2L, 1L, 
+2L), .Label = c("Observed", "Simulated"), class = "factor"), 
+    variable = structure(c(1L, 1L, 2L, 2L, 3L, 3L, 4L, 4L), .Label = c("Accuracy", "Precision","Recall","F-score","Balanced Accuracy"), class = "factor"), value = c(28, 
+    30, 29, 35, 32, 34, 26, 29)), row.names = c(NA, -8L), .Names = c("Type", 
+"variable", "value"), class = "data.frame")
+
+ggplot(DF, aes(variable, value)) +
+      geom_bar(aes(fill = Type), position = "dodge", stat="identity", width=.5) +
+      geom_text(aes(label=value, group=Type), position=position_dodge(width=0.5), vjust=-0.5) +
+      theme_bw(base_size = 18) +
+      ylab('Duration (days)') + xlab('Growth stages')
+
+```
+
+```{r , echo=FALSE}
+endCluster()
+end_time <- Sys.time()
+end_time - start_time
+
+```

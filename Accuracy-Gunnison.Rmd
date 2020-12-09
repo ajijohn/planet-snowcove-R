@@ -101,7 +101,7 @@ gplot(planet_84) +
 raster::raster('data/planetprojwgs84.tiff')
 ```{r , echo=FALSE}
 planet_84_stack <- raster::stack('data/planetprojwgs84.tiff')
-
+library(RStoolbox)
 ggRGB(planet_84_stack, r=3,g=2, b=1)  +  ggpubr::theme_pubclean() +
   labs(fill="",x="Longitude",y="Latitude") +  theme(legend.position = "none",axis.title.x=element_blank(),
         axis.text.x=element_blank(),
@@ -155,7 +155,8 @@ library('ceramic')
 data("wrld_simpl", package = "maptools")
 #im <- cc_location(cbind( -107.1661, 38.81874 ), buffer = 1e5, ype = "mapbox.satellite")
 e_sta <- raster::extent(rpredasoclip)
-im <- cc_location(e_sta, buffer = 1e5, ype = "mapbox.satellite")
+#im <- cc_location(e_sta, buffer = 1e5, ype = "mapbox.satellite")
+im <- cc_location(e_sta, ype = "mapbox.terrain-rgb")
 
 #> Preparing to download: 12 tiles at zoom = 6 from 
 #> https://api.mapbox.com/v4/mapbox.light/
@@ -253,6 +254,24 @@ area_sample + aso_sample + prediction_sample +
   caption = 'Mosaic by Mapbox')
 ggsave("figs/samplearea.png",dpi=300, dev='png',  height=10, width=10,units="in")
 ```
+
+```{r }
+#(combined_sites | (p2) | (world)) + plot_layout(guides = 'collect')
+library(patchwork)
+layout <- "
+AABB
+AABB
+CCDD
+CCDD
+"
+planet_sample + area_sample + aso_sample + prediction_sample +
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = 'A', title = '',
+  subtitle = '',
+  caption = 'Planet Labs, Inc.(A), Mosaic by Mapbox (B)')
+ggsave("figs/sampleareawithplanet.png",dpi=300, dev='png',  height=8, width=10,units="in")
+```
+
 Redo the plots with Planet
 planet+sample
 
@@ -338,8 +357,8 @@ confusionMatrix(as.factor(data_matrix_withchm_filtered_1$aso),as.factor(data_mat
 Plot the graph
 
 ```{r }
-class <- c("Accuracy", "Precision","Recall","F-score","Balanced Accuracy","Kappa")
-metrics<- c(0.8696,0.9590,0.8939 , 0.9253, 0.7678,0.417  )
+class <- c("Accuracy", "Precision","Recall","F-score","Balanced Accuracy")
+metrics<- c(0.8696,0.9590,0.8939 , 0.9253, 0.7678 )
 library(tidyverse)
 perf<- data.frame(class, metrics)
 colnames(perf) <- c('class','f_score')
