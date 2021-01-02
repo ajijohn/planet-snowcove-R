@@ -1,0 +1,52 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+# second step: apply the function
+library(raster)
+tuol_layers <- raster::brick('./data/dem_normalized_layers.tiff')
+
+tuol_dem <- tuol_layers[[1]]
+
+```
+
+
+```{r}
+# TPI for different neighborhood size:
+# first step: define customized function
+tpiw <- function(x, w=5) {
+    m <- matrix(1/(w^2-1), nc=w, nr=w)
+    m[ceiling(0.5 * length(m))] <- 0
+    f <- focal(x, m)
+    x - f
+}
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+```{r}
+# second step: apply the function
+tpi25 <- tpiw(tuol_dem, w=25)
+tpi25
+```
+
+
+
+Stacj
+
+
+```{r}
+# second step: apply the function
+newTuolNormal <- stack(tuol_layers,tpi25)
+newTuolNormal
+
+writeRaster(newTuolNormal, 'data/tuol_normalizef3mdemlayers_withtpi.tif', overwrite=TRUE, options="COMPRESS=LZW") 
+```
