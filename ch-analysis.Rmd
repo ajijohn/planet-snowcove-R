@@ -1,0 +1,37 @@
+---
+title: "ch-analysis"
+author: "Aji John"
+date: "12/30/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(raster)
+library(ForestGapR)
+library(fieldRS)
+library(viridis)
+library(rasterVis)
+library(tidyverse)
+```
+
+
+```{r , echo=FALSE}
+start_time <- Sys.time()
+  beginCluster()
+  
+```
+
+```{r cars}
+ch_norm <- raster('./data/switzerland_dem_clipped_wgs84_3mnormalized_layers_r2.tiff')
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
