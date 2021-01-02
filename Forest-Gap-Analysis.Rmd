@@ -1,0 +1,144 @@
+---
+title: "Forest-Gap-Analysis"
+author: "Aji John"
+date: "12/9/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(raster)
+library(ForestGapR)
+library(fieldRS)
+library(viridis)
+library(rasterVis)
+library(tidyverse)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r }
+rpredasoclip <-  raster::stack('data/asopluspredclippedplanet.tiff')
+gplot(rpredasoclip[[2]]) + 
+  geom_tile(aes(fill = value))  +
+  viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r , echo=FALSE}
+pr2 <- raster('data/Gunnison__chm_2point1by1point6.tif')
+veg_crop<-crop(pr2,extent(rpredasoclip))
+
+extent(veg_crop) <- extent(rpredasoclip)
+
+ # calculate overlap between the two datasets
+  overlap <- raster::intersect(extent(rpredasoclip), extent(veg_crop))
+   veg_crop <- crop(veg_crop, overlap)
+  crs(veg_crop) <- crs(rpredasoclip)
+```
+
+Split into 
+
+```{r , echo=FALSE}
+
+plot(veg_crop)
+
+
+```
+
+```{r , echo=FALSE}
+# The function spatially aggregates the original raster
+# it turns each aggregated cell into a polygon
+# then the extent of each polygon is used to crop
+# the original raster.
+# The function returns a list with all the pieces
+# in case you want to keep them in the memory. 
+# it saves and plots each piece
+# The arguments are:
+# raster = raster to be chopped            (raster object)
+# ppside = pieces per side                 (integer)
+# save   = write raster                    (TRUE or FALSE)
+# plot   = do you want to plot the output? (TRUE or FALSE)
+SplitRas <- function(raster,ppside,save,plot){
+  h        <- ceiling(ncol(raster)/ppside)
+  v        <- ceiling(nrow(raster)/ppside)
+  agg      <- aggregate(raster,fact=c(h,v))
+  agg[]    <- 1:ncell(agg)
+  agg_poly <- rasterToPolygons(agg)
+  names(agg_poly) <- "polis"
+  r_list <- list()
+  for(i in 1:ncell(agg)){
+    e1          <- extent(agg_poly[agg_poly$polis==i,])
+    r_list[[i]] <- crop(raster,e1)
+  }
+  if(save==T){
+    for(i in 1:length(r_list)){
+      writeRaster(r_list[[i]],filename=paste("SplitRas",i,sep=""),
+                  format="GTiff",datatype="FLT4S",overwrite=TRUE)  
+    }
+  }
+  if(plot==T){
+    par(mfrow=c(ppside,ppside))
+    for(i in 1:length(r_list)){
+      plot(r_list[[i]],axes=F,legend=F,bty="n",box=FALSE)  
+    }
+  }
+  return(r_list)
+}
+
+```
+
+```{r , echo=FALSE}
+
+SplitRas(raster=veg_crop,ppside=3,save=TRUE,plot=TRUE)
+# in this example we chopped the raster in 3 pieces per side
+# so 9 pieces in total
+# now the raster pieces should be ready 
+# to be processed in the default directory
+# A feature I like about this function is that it plots
+# the pieces in the original order. 
+```
+
+split into 9
+
+```{r , echo=FALSE}
+# Plotting chm
+#plot(veg_crop, col=viridis(10))
+ split_chm1 <- raster('SplitRas1.tif')
+# Setting height thresholds (e.g. 10 meters)
+threshold<-2
+size<-c(1,10) # m2
+
+# Detecting forest gaps
+gaps_duc<-getForestGaps(chm_layer=split_chm1, threshold=threshold, size=size)
+
+# Plotting gaps
+plot(gaps_duc, col="red", add=TRUE, main="Forest Canopy Gap", legend=FALSE)
+```
+
+```{r , echo=FALSE}
+# set height thresholds (e.g. 10 meters)
+threshold<-10
+size<-c(1,1000) # m2
+
+# Detecting forest gaps
+gaps_duc<-getForestGaps(chm_layer=split_chm1, threshold=threshold, size=size)
+
+# Computing basic statistis of forest gap
+gaps_stats<-GapStats(gap_layer=gaps_duc, chm_layer=split_chm1)
+
+# Gap-size Frequency Distributions
+GapSizeFDist(gaps_stats=gaps_stats, method="Hanel_2017", col="forestgreen", pch=16, cex=1,
+axes=FALSE,ylab="Gap Frequency",xlab=as.expression(bquote("Gap Size" ~ (m^2) )))
+axis(1);axis(2)
+grid(4,4)
+```
