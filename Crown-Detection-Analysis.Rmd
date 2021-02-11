@@ -13,6 +13,7 @@ library(fieldRS)
 library(viridis)
 library(rasterVis)
 library(tidyverse)
+library(rgdal)
 ```
 
 
@@ -63,7 +64,7 @@ plot(veg_crop)
 
 Detecting treetops
 
-Dominant treetops can be detected using vwf. This function implements the variable window filter algorithm developped by Popescu and Wynne (2004). In short, a moving window scans the CHM, and if a given cell is found to be the highest within the window, it is tagged as a treetop. The size of the window itself changes depending on the height of the cell on which it is centered. This is to compensate for varying crown sizes, with tall trees having wide crowns and vice versa.
+Dominant treetops can be detected using vwf. This function implements the variable window filter algorithm developed by Popescu and Wynne (2004). In short, a moving window scans the CHM, and if a given cell is found to be the highest within the window, it is tagged as a treetop. The size of the window itself changes depending on the height of the cell on which it is centered. This is to compensate for varying crown sizes, with tall trees having wide crowns and vice versa.
 
 Therefore, the first step is to define the function that will define the dynamic window size. Essentially, this function should take a CHM cell value (i.e.: the height of the canopy above ground at that location) and return the radius of the search window. Here, we will define a simple linear equation, but any function with a single input and output will work.
 
@@ -110,7 +111,7 @@ canden3by3 <- cd(split_chm1, w=3)
 
 m <- c(0, 50, 100,150, 200, 250)
 rclmat <- matrix(m, ncol=3, byrow=TRUE)
-rc <- reclassify(r, rclmat)
+#rc <- reclassify(r, rclmat)
 # equivalent to
 rc <- reclassify(canden3by3, c(0, 50, 100,150, 200, 250))
 
