@@ -1,0 +1,219 @@
+---
+title: "analyze-stuff"
+author: "Aji John"
+date: "2/23/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+Read the layer
+```{r}
+library(raster)
+
+darat <- raster::stack('./data/study-area-mm.tiff')
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+darat_predicted <- raster('./data/study-area-predicted.tiff')
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+Plot the area of interest (Bounding box)
+
+class      : Extent 
+xmin       : 10.02011 
+xmax       : 10.03 
+ymin       : 46.58182 
+ymax       : 46.58873 
+
+
+Using ceramic
+```{r , echo=FALSE}
+library('ceramic')
+
+data("wrld_simpl", package = "maptools")
+#im <- cc_location(cbind( -107.1661, 38.81874 ), buffer = 1e5, ype = "mapbox.satellite")
+
+im <- cc_location(p, buffer = 1e5, ype = "mapbox.satellite")
+#im <- cc_location(p, ype = "mapbox.terrain-rgb")
+
+#> Preparing to download: 12 tiles at zoom = 6 from 
+#> https://api.mapbox.com/v4/mapbox.light/
+raster::plotRGB(im)
+```
+
+# Clip the prediction
+
+```{r pressure, echo=FALSE}
+library(rgdal)
+pred<- raster('data/pred_merged_UTM_3m_s1_nodata_ch_r1.tif')
+crs_latlong <-crs("+proj=longlat +datum=WGS84")
+
+pred_ref_wgs84 <- projectRaster(pred,crs=crs_latlong,method='ngb')
+
+#pred <- raster('data/dem_stackedco_demandfriendsnormalized_predv3.tiff')
+pred_crop <- crop(pred_ref_wgs84,p)
+plot(pred_crop)
+```
+
+
+
+# Clip the ASO
+
+```{r pressure, echo=FALSE}
+
+aso<- raster('data/EUCHDB20170517_SUPERsnow_depth_3m_binary_wgs84_3m.tif')
+#crs_latlong <-crs("+proj=longlat +datum=WGS84")
+
+#pred_ref_wgs84 <- projectRaster(pred,crs=crs_latlong)
+
+#pred <- raster('data/dem_stackedco_demandfriendsnormalized_predv3.tiff')
+aso_crop <- crop(aso,p)
+plot(aso_crop)
+```
+
+Clip the canopy
+
+```{r , echo=FALSE}
+
+chm<- raster('data/EUCHDB20170829f1a1_CHM_WGS84.tif')
+#crs_latlong <-crs("+proj=longlat +datum=WGS84")
+
+#chm_ref_wgs84 <- projectRaster(chm,crs=crs_latlong)
+
+#pred <- raster('data/dem_stackedco_demandfriendsnormalized_predv3.tiff')
+chm_crop <- crop(chm,p)
+plot(chm_crop)
+```
+
+
+```{r , echo=FALSE}
+
+aso_pred_rep <- projectRaster(aso_crop,pred_crop,method='ngb')
+chm_crop_rep <- projectRaster(chm_crop,pred_crop)
+extent(aso_pred_rep) <- extent(pred_crop)
+extent(chm_crop_rep) <- extent(pred_crop)
+df <- stack(aso_pred_rep,pred_crop,chm_crop_rep)
+
+raster::writeRaster(df,'data/newstudy.tiff')
+```
+
+
+```{r , echo=FALSE}
+
+data_matrix <- rasterToPoints(df)
+head(data_matrix)
+datafra_comb <- data_matrix %>% as.data.frame()
+
+colnames(datafra_comb) <- c('x','y','aso','pred','veg_height')
+```
+
+```{r , echo=FALSE}
+library(caret)
+datafra_comb1m <- datafra_comb %>% dplyr::filter(!is.na(veg_height) & veg_height > 2) %>% as.data.frame()
+
+high_veg <- datafra_comb1m %>% dplyr::filter(!is.na(veg_height)) %>% dplyr::filter(veg_height > 1 ) %>% as.data.frame()
+high_veg_df <- high_veg %>% dplyr::mutate(pred_f = as.factor(pred),aso_f = as.factor(aso)) %>% as.data.frame()
+
+confusionMatrix(as.factor(high_veg$aso),as.factor(high_veg$pred),mode = 'prec_recall')
+
+```
+
+```{r , echo=FALSE}
+library(caret)
+
+low_veg <- datafra_comb %>%  dplyr::filter(veg_height < 2 ) %>% as.data.frame()
+low_veg_df <- low_veg %>% dplyr::mutate(pred_f = as.factor(pred),aso_f = as.factor(aso)) %>% as.data.frame()
+
+confusionMatrix(as.factor(low_veg$aso),as.factor(low_veg$pred),mode = 'prec_recall')
+
+```
+
+```{r , echo=FALSE}
+library(caret)
+
+bare_veg <- datafra_comb %>%  dplyr::filter(veg_height < 1 ) %>% as.data.frame()
+bare_veg_df <- bare_veg %>% dplyr::mutate(pred_f = as.factor(pred),aso_f = as.factor(aso)) %>% as.data.frame()
+
+confusionMatrix(as.factor(bare_veg$aso),as.factor(bare_veg$pred),mode = 'prec_recall')
+
+```
+
+
+
+
+
+```{r , echo=FALSE}
+lin <- function(x){x * 10 + 0.6}
+
+# TPI for different neighborhood size:
+tpiw <- function(x, w=5) {
+	m <- matrix(1/(w^2-1), nc=w, nr=w)
+	m[ceiling(0.5 * length(m))] <- 0
+	f <- focal(x, m)
+	x - f
+}
+
+cd <- function(x, w) {
+	m <- matrix(1, nc=w, nr=w)
+#	m[ceiling(0.5 * length(m))] <- 0
+	f <- focal(x, m, fun=sum)
+	f
+}
+
+```
+
+
+```{r , echo=FALSE}
+library(tidyverse)
+library(rasterVis)
+# 225m2
+#canden5by5wc <- cd(split_chm1, w=5)
+canden3by3wc <- cd(chm_crop, w=3)
+
+rcwc <- reclassify(canden3by3wc, c(0, 50, 100,150, 200, 250))
+
+gplot(rcwc) + 
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+
+#ggsave(filename = "figs/wc_densitymap.png",dpi = 300,height=4,width=8,units="in")
+```
+## Reclassify the canopy height layer
+
+```{r , echo=FALSE}
+
+m <- c(-10, 2, 0,  2, 100, 1)
+rclmat <- matrix(m, ncol=3, byrow=TRUE)
+r_chm <- reclassify(chm_crop, rclmat)
+
+cdensity <- function(x, w) {
+	m <- matrix(1, nc=w, nr=w)
+#	m[ceiling(0.5 * length(m))] <- 0
+	f <- focal(x, m, fun=mean)
+	f
+}
+
+# 225m2
+#canden5by5wc <- cd(split_chm1, w=5)
+c_density3by3wc <- cdensity(r_chm, w=3)
+
+
+gplot(c_density3by3wc) + 
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+
+#ggsave(filename = "figs/wc_densitymap.png",dpi = 300,height=4,width=8,units="in")
+```
