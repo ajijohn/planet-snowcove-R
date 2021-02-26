@@ -24,6 +24,24 @@ You can also embed plots, for example:
 
 ```{r pressure, echo=FALSE}
 darat_predicted <- raster('./data/study-area-predicted.tiff')
+
+aoi <- extent(c(10.02011,10.03,46.58182 ,46.58873 ))
+p <- aoi
+```
+
+#visualize
+```{r , echo=FALSE}
+library('ceramic')
+
+data("wrld_simpl", package = "maptools")
+#im <- cc_location(cbind( -107.1661, 38.81874 ), buffer = 1e5, ype = "mapbox.satellite")
+
+aoip<- cc_location(aoi, buffer = 1e5, ype = "mapbox.satellite")
+#im <- cc_location(p, ype = "mapbox.terrain-rgb")
+
+#> Preparing to download: 12 tiles at zoom = 6 from 
+#> https://api.mapbox.com/v4/mapbox.light/
+raster::plotRGB(aoip)
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
