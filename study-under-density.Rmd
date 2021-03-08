@@ -91,6 +91,9 @@ geo_pretty(asgeojs)
  
 
 
+=======
+
+
 #visualize
 ```{r , echo=FALSE}
 library('ceramic')
