@@ -134,68 +134,34 @@ raster::plotRGB(im)
 
 # Clip the prediction
 
-```{r pressure, echo=FALSE}
-library(rgdal)
-pred<- raster('data/pred_merged_UTM_3m_s1_nodata_ch_r1.tif')
-crs_latlong <-crs("+proj=longlat +datum=WGS84")
-
-pred_ref_wgs84 <- projectRaster(pred,crs=crs_latlong,method='ngb')
-
-#pred <- raster('data/dem_stackedco_demandfriendsnormalized_predv3.tiff')
-pred_crop <- crop(pred_ref_wgs84,p)
-plot(pred_crop)
-```
-
 
 
 # Clip the ASO
 
-```{r pressure, echo=FALSE}
-
-aso<- raster('data/EUCHDB20170517_SUPERsnow_depth_3m_binary_wgs84_3m.tif')
-#crs_latlong <-crs("+proj=longlat +datum=WGS84")
-
-#pred_ref_wgs84 <- projectRaster(pred,crs=crs_latlong)
-
-#pred <- raster('data/dem_stackedco_demandfriendsnormalized_predv3.tiff')
-aso_crop <- crop(aso,p)
-plot(aso_crop)
-```
 
 Clip the canopy
 
-```{r , echo=FALSE}
-
-chm<- raster('data/EUCHDB20170829f1a1_CHM_WGS84.tif')
-#crs_latlong <-crs("+proj=longlat +datum=WGS84")
-
-#chm_ref_wgs84 <- projectRaster(chm,crs=crs_latlong)
-
-#pred <- raster('data/dem_stackedco_demandfriendsnormalized_predv3.tiff')
-chm_crop <- crop(chm,p)
-plot(chm_crop)
-```
-
 
 ```{r , echo=FALSE}
 
-aso_pred_rep <- projectRaster(aso_crop,pred_crop,method='ngb')
-chm_crop_rep <- projectRaster(chm_crop,pred_crop)
-extent(aso_pred_rep) <- extent(pred_crop)
-extent(chm_crop_rep) <- extent(pred_crop)
-df <- stack(aso_pred_rep,pred_crop,chm_crop_rep)
-
-raster::writeRaster(df,'data/newstudy.tiff',overwrite=TRUE)
-```
-
-
-```{r , echo=FALSE}
-
+df <- raster::stack('data/newstudy.tif')
 data_matrix <- rasterToPoints(df)
 head(data_matrix)
 datafra_comb <- data_matrix %>% as.data.frame()
 
 colnames(datafra_comb) <- c('x','y','aso','pred','veg_height')
+```
+
+```{r , echo=FALSE}
+library(tidyverse)
+library(rasterVis)
+
+gplot(df[[3]]) + 
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+
+ggsave(filename = "figs/swiss_canopyheightmap.png",dpi = 300,height=4,width=8,units="in")
 ```
 
 ```{r , echo=FALSE}
@@ -259,14 +225,14 @@ library(tidyverse)
 library(rasterVis)
 # 225m2
 #canden5by5wc <- cd(split_chm1, w=5)
-canden3by3wc <- cd(chm_crop, w=3)
+#canden3by3wc <- cd(chm_crop, w=3)
 
-rcwc <- reclassify(canden3by3wc, c(0, 50, 100,150, 200, 250))
+#rcwc <- reclassify(canden3by3wc, c(0, 50, 100,150, 200, 250))
 
-gplot(rcwc) + 
-  geom_tile(aes(fill = value))  +
- viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
-  theme_bw()
+#gplot(rcwc) + 
+#  geom_tile(aes(fill = value))  +
+# viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+#  theme_bw()
 
 #ggsave(filename = "figs/wc_densitymap.png",dpi = 300,height=4,width=8,units="in")
 ```
@@ -274,9 +240,9 @@ gplot(rcwc) +
 
 ```{r , echo=FALSE}
 
-m <- c(-10, 2, 0,  2, 100, 1)
-rclmat <- matrix(m, ncol=3, byrow=TRUE)
-r_chm <- reclassify(chm_crop, rclmat)
+#m <- c(-10, 2, 0,  2, 100, 1)
+#rclmat <- matrix(m, ncol=3, byrow=TRUE)
+#r_chm <- reclassify(chm_crop, rclmat)
 
 cdensity <- function(x, w) {
 	m <- matrix(1, nc=w, nr=w)
@@ -287,35 +253,30 @@ cdensity <- function(x, w) {
 
 # 225m2
 #canden5by5wc <- cd(split_chm1, w=5)
-c_density3by3wc <- cdensity(r_chm, w=3)
-
-
-gplot(c_density3by3wc) + 
-  geom_tile(aes(fill = value))  +
- viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
-  theme_bw()
-
-ggsave(filename = "figs/densitymap.png",dpi = 300,height=4,width=8,units="in")
-```
-Add Density
-```{r , echo=FALSE}
-aso_crop_reprcd <- projectRaster(aso_crop,c_density3by3wc,method='ngb')
-pred_crop_reprcd <- projectRaster(pred_crop,c_density3by3wc,method='ngb')
-
-extent(aso_crop_reprcd)  <- extent(c_density3by3wc)
-df_cd <- stack(aso_crop_reprcd,pred_crop_reprcd,c_density3by3wc)
-
-raster::writeRaster(df_cd,'data/newstudywithcd.tiff',overwrite=TRUE)
 ```
 
 ```{r , echo=FALSE}
-
+df_cd <- raster::stack('data/newstudywithcd.tif')
 data_matrix_cd <- rasterToPoints(df_cd)
 head(data_matrix_cd)
 datafra_comb_cd <- data_matrix_cd %>% as.data.frame()
 
 colnames(datafra_comb_cd) <- c('x','y','aso','pred','can_den')
 ```
+
+# plot canopy density
+```{r , echo=FALSE}
+library(tidyverse)
+library(rasterVis)
+
+gplot(df_cd[[3]]) + 
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+
+ggsave(filename = "figs/swiss_densitymap.png",dpi = 300,height=4,width=8,units="in")
+```
+
 
 ```{r , echo=FALSE}
 library(caret)
@@ -352,24 +313,11 @@ confusionMatrix(as.factor(dense_veg$aso),as.factor(dense_veg$pred),mode = 'prec_
 
 Look at DCe
 
-```{r , echo=FALSE}
-planet_img_swiss <-raster('data/20170516_092458_1030_3B_AnalyticMS_SR_clip.tif')
-dce_met <- raster('./data/dce_Swiss9_out.asc')
-projection(dce_met) <- projection(planet_img_swiss)
-
-dce_ref_wgs84 <- projectRaster(dce_met,crs=crs_latlong,method='ngb')
-cropped_dce <- crop(dce_ref_wgs84, p)
-
-aso_crop_reprdce <- projectRaster(aso_crop,cropped_dce,method='ngb')
-pred_crop_reprdce<- projectRaster(pred_crop,cropped_dce,method='ngb')
-
-
-df_dce <- stack(aso_crop_reprdce,pred_crop_reprdce,cropped_dce)
-
-raster::writeRaster(df_dce,'data/newstudywithdce.tiff',overwrite=TRUE)
-```
-
 Plot the DCE Metrics
+
+```{r , echo=FALSE}
+df_dce <- raster::stack('data/newstudywithdce.tif')
+```
 
 ```{r , echo=FALSE}
 
@@ -379,6 +327,18 @@ datafra_comb_dce <- data_matrix_dce %>% as.data.frame()
 
 colnames(datafra_comb_dce) <- c('x','y','aso','pred','dce')
 datafra_comb_orig <- datafra_comb_dce
+```
+# Plot DCE
+```{r , echo=FALSE}
+library(tidyverse)
+library(rasterVis)
+
+gplot(df_dce[[3]]) + 
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+
+ggsave(filename = "figs/swiss_dcemap.png",dpi = 300,height=4,width=8,units="in")
 ```
 
 ```{r , echo=FALSE}
