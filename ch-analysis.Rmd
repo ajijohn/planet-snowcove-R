@@ -30,8 +30,84 @@ ch_norm <- raster('./data/switzerland_dem_clipped_wgs84_3mnormalized_layers_r2.t
 
 You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r, echo=FALSE}
+prediction_SWiss <- raster('./data/pred_merged_UTM_3m_s1_nodata_ch_r1.tif')
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r, echo=FALSE}
+prediction_SWiss <- raster('./data/pred_merged_wgs84_3m_s1_nodata_ch_r1.tif')
+```
+
+```{r, echo=FALSE}
+aso_SWiss <- raster('./data/EUCHDB20170517_SUPERsnow_depth_3m_binary_wgs84_3m.tif')
+
+cropped_aso_swiss <- crop(aso_SWiss, extent(prediction_SWiss))
+
+```
+
+```{r, echo=FALSE}
+planet_img_swiss_stack <-raster::stack('data/20170516_092458_1030_3B_AnalyticMS_SR_clip.tif')
+planet_img_swiss_stack <- planet_img_swiss_stack/10000
+```
+
+
+
+```{r, echo=FALSE}
+# Vector of correspondence
+cols.nb <- c("0" = "blue", "1" = "red")
+
+gplot(prediction_SWiss) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+ viridis::scale_fill_viridis(direction = -1,discrete=TRUE,begin=0,end=1, na.value='#FFFFFF00') + 
+  theme_bw() +
+theme(panel.background = element_rect(colour = "black", fill="lightblue")) 
+```
+
+```{r, echo=FALSE}
+# Vector of correspondence
+cols.nb <- c("0" = "blue", "1" = "red")
+library(patchwork)
+plotb <- gplot(prediction_SWiss) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+theme(panel.background = element_rect(colour = "black", fill="white")) +
+ggspatial::annotation_scale(location = "bl", width_hint = 0.5) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+        pad_x = unit(0.75, "in"), pad_y = unit(0.5, "in"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='') 
+
+
+plota <- gplot(cropped_aso_swiss) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+  #theme_bw()+
+theme(panel.background = element_rect(colour = "black", fill="white")) +
+ggspatial::annotation_scale(location = "bl", width_hint = 0.5) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+        pad_x = unit(0.75, "in"), pad_y = unit(0.5, "in"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='') 
+
+
+```
+
+```{r , echo=FALSE}
+(plota | (plotb)) + plot_layout(guides = 'collect')
+ggsave("figs/swiss_asopluspred.png",dpi=300, dev='png',  height=10, width=10,units="in")
+
+```
+
+
+```{r , echo=FALSE}
+endCluster()
+end_time <- Sys.time()
+end_time - start_time
+
+```

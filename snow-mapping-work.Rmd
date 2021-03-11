@@ -374,3 +374,108 @@ low_dce<- datafra_comb_dce %>% dplyr::filter(!is.na(dce)) %>% dplyr::filter( dce
 confusionMatrix(as.factor(low_dce$aso),as.factor(low_dce$pred),mode = 'prec_recall')
 
 ```
+
+
+# compre with MODIS
+#MOD10A1.A2017137.h18v05.006.2017139030913.hdf
+File Name
+Size (MB)
+Start Time
+End Time
+MOD10A1.A2017137.h18v04.006.2017139031232.hdf	6.7	2017-05-17 09:30:00	2017-05-17 11:15:00
+
+Data center logoData Set ID: MOD10A1
+MODIS/Terra Snow Cover Daily L3 Global 500m SIN Grid, Version 6
+This data set contains daily, gridded snow cover and albedo derived from radiance data acquired by the Moderate Resolution Imaging Spectroradiometer (MODIS) on board the Terra satellite. Snow cover is identified using the Normalized Difference Snow Index (NDSI) and a series of screens designed to alleviate errors and flag uncertain snow cover detections.
+
+```{r , echo=FALSE}
+library(MODISSnow)
+#dat <- download_data(lubridate::ymd("2017-05-15"), h = 18, v = 5)
+#class(dat)
+#raster::plot(dat)
+```
+```{r , echo=FALSE}
+library(MODIS)
+sds <- MODIS::getSds('data/MOD10A1.A2017137.h18v04.006.2017139031232.hdf')
+
+  # read data into memory (if small enough raster should
+  # figure this out on its own - you can force this using
+  # brick)
+hdf_layer <- raster::raster(readGDAL(sds$SDS4gdal[4], as.is = TRUE))
+hdf_layer_nl <- hdf_layer/10000  
+
+raster::writeRaster(hdf_layer_nl,'data/hdflayer_europe20170517.tiff',overwrite=TRUE)
+```
+
+
+What is NDSI snow cover and how does it compare to FSC?
+What is NDSI?
+
+The Normalized Difference Snow Index (NDSI) snow cover is an index that is related to the presence of snow in a pixel and is a more accurate description of snow detection as compared to Fractional Snow Cover (FSC). Snow typically has very high visible (VIS) reflectance and very low reflectance in the shortwave infrared (SWIR), a characteristic used to detect snow by distinguishing between snow and most cloud types. Snow cover is detected using the NDSI ratio of the difference in VIS and SWIR reflectance; NDSI = ((band 4-band 6) / (band 4 + band 6)). A pixel with NDSI > 0.0 is considered to have some snow present. A pixel with NDSI <= 0.0 is a snow free land surface (Riggs et al., 2016).   
+
+How does NDSI compare to FSC?
+
+Starting in MODIS version 6, the NDSI snow cover algorithm is designed to detect snow cover across the entire range of NDSI values from 0.0 - 1.0. This is the theoretically possible range for snow. By using this entire range the ability to map snow in many situations is increased, notably in situations where reflectance is relatively low and snow has a low but positive NDSI value. NDSI snow cover replaces the FSC of version 5. The FSC was calculated based on an empirical relationship that was based on the extent of snow cover in Landsat TM 30 m pixels that corresponded to a MODIS 500 m pixel. Change to the NDSI snow cover algorithm is further explained in Riggs and Hall (2015). 
+
+Riggs, George A., Dorothy K. Hall, and Miguel O. Roman. 2015. VIIRS Snow Cover Algorithm Theoretical Basis Document. https://modis-snow-ice.gsfc.nasa.gov/uploads/VIIRS_snow_cover_ATBD_2015.pdf. 
+
+Riggs, George A. and Dorothy K. Hall. 2016. MODIS Snow Products Collection 6 User Guide. https://nsidc.org/sites/nsidc.org/files/files/MODIS-snow-user-guide-C6.pdf.
+
+
+
+Clipping
+
+```{r , echo=FALSE}
+
+# set the default MODIS projection
+sinus <- "+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs"
+
+  b <- as(raster::extent(10.02011,10.03,46.58182 ,46.58873 ), 'SpatialPolygons')
+  raster::crs(b) <- "+init=epsg:4326"
+  b <- sf::st_as_sf(b)
+  
+    # transform the polygon
+  b <- sf::st_transform(b, sinus)
+  
+ # mask the hdf_layer (check outlier values)
+  hdf_layer_aoi <- raster::mask(hdf_layer, b)
+  
+```  
+
+```{r , echo=FALSE}
+
+# set the default MODIS projection
+sinus <- "+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs"
+crs_latlong <-crs("+proj=longlat +datum=WGS84")
+hdf_nllay <- raster('./data/hdflayer_europe20170517.tif')
+hdf_nllay_repr<- projectRaster(hdf_nllay,df_dce,method='ngb')
+
+gplot(hdf_nllay_repr) + 
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+
+ggsave(filename = "figs/modis_proj_aou.png",dpi = 300,height=4,width=8,units="in")
+```
+
+Converted to lat/long and then clipped
+
+gdalwarp data/hdflayer_europe20170517.tif data/hdflayer_wgs84_europe20170517.tif -t_srs "+proj=longlat +ellps=WGS84"
+
+
+```{r , echo=FALSE}
+
+# set the default MODIS projection
+#sinus <- "+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs"
+
+hdf_nllay_wgs84 <- raster('./data/hdflayer_wgs84_europe20170517.tif')
+hdf_crop <- crop(hdf_nllay_wgs84,p)
+#hdf_nllay_repr<- projectRaster(hdf_nllay,df_dce,method='ngb')
+
+gplot(hdf_crop) + 
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+
+ggsave(filename = "figs/modis_crop_aou.png",dpi = 300,height=4,width=8,units="in")
+```
