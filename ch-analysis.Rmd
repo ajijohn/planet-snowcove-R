@@ -74,10 +74,10 @@ plotb <- gplot(prediction_SWiss) +
                     breaks = 0:1,
                     labels = c("No snow", "Snow"),
                     name = "") +
-theme(panel.background = element_rect(colour = "black", fill="white")) +
-ggspatial::annotation_scale(location = "bl", width_hint = 0.5) +
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom") +
+ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
     ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
-        pad_x = unit(0.75, "in"), pad_y = unit(0.5, "in"),style = ggspatial::north_arrow_fancy_orienteering) +
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
   labs(x='',  y='') 
 
 
@@ -89,19 +89,105 @@ plota <- gplot(cropped_aso_swiss) +
                     labels = c("No snow", "Snow"),
                     name = "") +
   #theme_bw()+
-theme(panel.background = element_rect(colour = "black", fill="white")) +
-ggspatial::annotation_scale(location = "bl", width_hint = 0.5) +
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none") +
+ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
     ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
-        pad_x = unit(0.75, "in"), pad_y = unit(0.5, "in"),style = ggspatial::north_arrow_fancy_orienteering) +
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
   labs(x='',  y='') 
 
 
 ```
 
 ```{r , echo=FALSE}
-(plota | (plotb)) + plot_layout(guides = 'collect')
-ggsave("figs/swiss_asopluspred.png",dpi=300, dev='png',  height=10, width=10,units="in")
+library('ceramic')
 
+data("wrld_simpl", package = "maptools")
+#im <- cc_location(cbind( -107.1661, 38.81874 ), buffer = 1e5, ype = "mapbox.satellite")
+
+im_swiss_site <- cc_location(extent(cropped_aso_swiss), buffer = 1e5, ype = "mapbox.satellite")
+#im <- cc_location(p, ype = "mapbox.terrain-rgb")
+
+#> Preparing to download: 12 tiles at zoom = 6 from 
+#> https://api.mapbox.com/v4/mapbox.light/
+raster::plotRGB(im_swiss_site)
+```
+
+
+```{r , echo=FALSE}
+library(RColorBrewer)
+cur_col <- brewer.pal(11, "Paired") 
+plottest <- gplot(im_swiss_site) + 
+   geom_raster(aes(x=x,y=y,fill=value))+
+   coord_sf(crs = 4326)+
+  #scale_fill_manual(values = cols.nb,
+  #                  breaks = 0:1,
+  #                  labels = c("No snow", "Snow"),
+  #                  name = "") +
+ scale_fill_viridis(option="viridis")+
+  #theme_bw()+
+theme(panel.background = element_rect(colour = "black", fill="white")) +
+ggspatial::annotation_scale(location = "bl", width_hint = 0.5) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "in"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='') 
+``` 
+ 
+```{r , echo=FALSE}
+ 
+plotc <-  RStoolbox::ggRGB(im_swiss_site)+
+theme(panel.background = element_rect(colour = "black", fill="white")) +
+ggspatial::annotation_scale(location = "bl", width_hint = 0.5) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='') 
+```
+
+
+```{r , echo=FALSE}
+(plota + plotb ) + plot_layout(guides = 'collect') + 
+  plot_annotation(tag_levels = 'A')
+ggsave("figs/swiss_asopluspred.png",dpi=300,height=10,width=10,units="in")
+
+```
+
+
+```{r , echo=FALSE}
+plotc/ (plota + plotb ) + 
+  plot_layout(guides = 'keep') + 
+  plot_annotation(tag_levels = 'A')
+ggsave("figs/swiss_asopluspred_combined.png",dpi=300,width=200, height=300, units="mm")
+```
+```{r , echo=FALSE}
+library(patchwork)
+layout <- "
+AAAA
+AAAA
+BBCC
+BBCC
+"
+plotc + plota + plotb  +
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = 'A', title = '',
+  subtitle = '',
+  caption = 'Mosaic by Mapbox (A)')
+ggsave("figs/swiss_asopluspred_combinedr1.png",dpi=300, dev='png',  height=8, width=10,units="in")
+```
+
+perf
+
+```{r , echo=FALSE}
+aso_ch_rep <- projectRaster(cropped_aso_swiss,prediction_SWiss,method='ngb')
+df_ch_stack <- raster::stack(aso_ch_rep,prediction_SWiss)
+
+data_matrix_ch <- rasterToPoints(df_ch_stack)
+head(data_matrix_ch)
+datafra_comb_ch <- data_matrix_ch %>% as.data.frame()
+
+colnames(datafra_comb_ch) <- c('x','y','aso','pred')
+
+perf<- confusionMatrix(as.factor(datafra_comb_ch$aso), as.factor(datafra_comb_ch$pred),mode = "prec_recall")
+
+perf
 ```
 
 

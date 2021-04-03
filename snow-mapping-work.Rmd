@@ -195,7 +195,64 @@ confusionMatrix(as.factor(bare_veg$aso),as.factor(bare_veg$pred),mode = 'prec_re
 
 ```
 
+```{r , echo=FALSE}
+library(caret)
 
+yes_veg <- datafra_comb %>%  dplyr::filter(veg_height > 1 ) %>% as.data.frame()
+yes_veg_df <- yes_veg %>% dplyr::mutate(pred_f = as.factor(pred),aso_f = as.factor(aso)) %>% as.data.frame()
+
+confusionMatrix(as.factor(yes_veg$aso),as.factor(yes_veg$pred),mode = 'prec_recall')
+
+```
+
+```{r , echo=FALSE}
+plotchm_aoi<-  RStoolbox::ggRGB(aoip)+
+theme(panel.background = element_rect(colour = "black", fill="white")) +
+ggspatial::annotation_scale(location = "bl", width_hint = 0.5) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='') 
+  
+```
+
+
+```{r , echo=FALSE}
+
+cols.chm <- c("1" = "red", "2" = "green")
+#old
+#rc_dce <- reclassify(df_dce[[3]], c(-Inf,0,1,0,30,2, 30,Inf,3))
+#new
+rc_chm<- reclassify(df[[3]], c(-Inf,1,1,1,Inf,2))
+
+plotchm<- gplot(rc_chm) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.chm,
+                    breaks = c(1,2),
+                    labels = c("Open", "Forested"),
+                    name = "") +
+  #theme_bw()+
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom") +
+ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='',fill="Vegetation:",color="Vegetation:") 
+  
+```
+
+```{r , echo=FALSE}
+library(patchwork)
+layout <- "
+AABB
+AABB
+"
+plotchm_aoi + plotchm +
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = 'A', title = '',
+  subtitle = '',
+  caption = 'Mosaic by Mapbox (A)')
+ggsave("figs/swiss_chmr1.png",dpi=300, dev='png',  height=8, width=10,units="in")
+```
 
 
 
@@ -310,6 +367,57 @@ confusionMatrix(as.factor(dense_veg$aso),as.factor(dense_veg$pred),mode = 'prec_
 
 ```
 
+```{r , echo=FALSE}
+plotdensity_aoi<-  RStoolbox::ggRGB(aoip)+
+theme(panel.background = element_rect(colour = "black", fill="white")) +
+ggspatial::annotation_scale(location = "bl", width_hint = 0.5) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='') 
+  
+```
+
+
+```{r , echo=FALSE}
+
+cols.dc <- c("1" = "red", "2" = "blue", "3" = "green")
+#old
+#rc_dce <- reclassify(df_dce[[3]], c(-Inf,0,1,0,30,2, 30,Inf,3))
+#new
+rc_density<- reclassify(df_cd[[3]], c(-Inf,0.5,1,0.5,0.75,2, 0.75,1,3))
+
+plotdensity<- gplot(rc_density) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.dc,
+                    breaks = c(1,2,3),
+                    labels = c("Sparse", "Medium","Dense"),
+                    name = "") +
+  #theme_bw()+
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom") +
+ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='',fill="Vegetation:",color="Vegetation:") 
+  
+```
+
+```{r , echo=FALSE}
+library(patchwork)
+layout <- "
+AABB
+AABB
+"
+plotdensity_aoi + plotdensity +
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = 'A', title = '',
+  subtitle = '',
+  caption = 'Mosaic by Mapbox (A)')
+ggsave("figs/swiss_densityr1.png",dpi=300, dev='png',  height=8, width=10,units="in")
+```
+
+
+
 
 Look at DCe
 
@@ -340,6 +448,55 @@ gplot(df_dce[[3]]) +
 
 ggsave(filename = "figs/swiss_dcemap.png",dpi = 300,height=4,width=8,units="in")
 ```
+```{r , echo=FALSE}
+plotdce_aoi<-  RStoolbox::ggRGB(aoip)+
+theme(panel.background = element_rect(colour = "black", fill="white")) +
+ggspatial::annotation_scale(location = "bl", width_hint = 0.5) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='') 
+  
+```
+
+
+```{r , echo=FALSE}
+
+cols.dc <- c("1" = "green", "2" = "blue", "3" = "red")
+#old
+#rc_dce <- reclassify(df_dce[[3]], c(-Inf,0,1,0,30,2, 30,Inf,3))
+#new
+rc_dce <- reclassify(df_dce[[3]], c(-Inf,0,1,0,30,2, 30,Inf,3))
+
+plotdce<- gplot(rc_dce) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.dc,
+                    breaks = c(1,2,3),
+                    labels = c("Dense", "Medium","Sparse"),
+                    name = "") +
+  #theme_bw()+
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom") +
+ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='',fill="Vegetation:",color="Vegetation:") 
+  
+```
+
+```{r , echo=FALSE}
+library(patchwork)
+layout <- "
+AABB
+AABB
+"
+plotdce_aoi + plotdce +
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = 'A', title = '',
+  subtitle = '',
+  caption = 'Mosaic by Mapbox (A)')
+ggsave("figs/swiss_dcer1.png",dpi=300, dev='png',  height=8, width=10,units="in")
+```
+
 
 ```{r , echo=FALSE}
 library(caret)
@@ -479,3 +636,18 @@ gplot(hdf_crop) +
 
 ggsave(filename = "figs/modis_crop_aou.png",dpi = 300,height=4,width=8,units="in")
 ```
+
+```{r , echo=FALSE}
+cropped_modis_swiss <- crop(hdf_nllay_wgs84, extent(prediction_SWiss))
+gplot(cropped_modis_swiss) + 
+  geom_tile(aes(fill = value) ) +
+   coord_sf(crs = 4326)+
+  #theme_bw()+
+theme(panel.background = element_rect(colour = "black", fill="white")) +
+ggspatial::annotation_scale(location = "bl", width_hint = 0.5) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.5, "in"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='',fill="NDSI") 
+ggsave(filename = "figs/modis_ndsi_crop_swiss.png",dpi = 300,height=4,width=8,units="in")
+```
+

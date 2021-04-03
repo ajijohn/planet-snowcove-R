@@ -131,3 +131,29 @@ p + geom_polygon(fill="white",color = "black", size = 0.2) +
 ggsave("figs/studysites.png",dpi=300, dev='png',units="in")
 
 ```
+```{r }
+library(usmap)
+library(ggplot2)
+
+library(maps)
+world_c <- map_data("world")
+
+p <- ggplot(data = world_c,
+            mapping = aes(x = long, y = lat,
+                          group = group))
+
+p + geom_polygon(fill="white",color = "black", size = 0.2) +
+  coord_fixed() +
+     geom_point(aes(x = -120.2413, y=37.9627), ,size=3, label = 'Upper Tuolumne',  color = "red", alpha = 0.25) + 
+    geom_point(aes(x = 10.03, y=46.5818),size=3, label = 'Davos', color = "red", alpha = 0.25) +
+   annotate("text", x = -119.25, y=37.89, label = 'Upper Tuolumne', hjust = 0.1,, colour = "black",size = 3) +     annotate("text", x=10.03, y=46.5818, label = 'Davos', hjust = 0.1, colour = "black", size = 3) +
+    guides(fill= FALSE) + theme_minimal(base_size = 15)+
+   #theme_classic() +
+  labs(title = "", seze="", x= "Longitude", y="Latitude",
+       subtitle = "") +
+   theme(panel.grid.major = element_line(color = gray(.5), linetype = 'dashed', size = 0.5), panel.background = element_rect(fill = 'aliceblue'))
+
+ggsave("figs/studysitesclasspaper.png",dpi=300, dev='png',units="in")
+
+```
+
