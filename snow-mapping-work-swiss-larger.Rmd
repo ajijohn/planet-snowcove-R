@@ -588,7 +588,7 @@ Clipping
 # set the default MODIS projection
 sinus <- "+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs"
 
-  b <- as(raster::extent(10.02011,10.03,46.58182 ,46.58873 ), 'SpatialPolygons')
+  b <- as(raster::extent(10.02339, 10.04452, 46.5633, 46.58303  ), 'SpatialPolygons')
   raster::crs(b) <- "+init=epsg:4326"
   b <- sf::st_as_sf(b)
   
@@ -638,17 +638,5 @@ gplot(hdf_crop) +
 ggsave(filename = "figs/modis_crop_aou.png",dpi = 300,height=4,width=8,units="in")
 ```
 
-```{r , echo=FALSE}
-cropped_modis_swiss <- crop(hdf_nllay_wgs84, extent(prediction_SWiss))
-gplot(cropped_modis_swiss) + 
-  geom_tile(aes(fill = value) ) +
-   coord_sf(crs = 4326)+
-  #theme_bw()+
-theme(panel.background = element_rect(colour = "black", fill="white")) +
-ggspatial::annotation_scale(location = "bl", width_hint = 0.5) +
-    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
-       pad_y = unit(0.5, "in"),style = ggspatial::north_arrow_fancy_orienteering) +
-  labs(x='',  y='',fill="NDSI") 
-ggsave(filename = "figs/modis_ndsi_crop_swiss.png",dpi = 300,height=4,width=8,units="in")
-```
+
 
