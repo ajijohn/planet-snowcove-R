@@ -12,23 +12,140 @@ knitr::opts_chunk$set(echo = TRUE)
 ## R Markdown
 
 Read the layer
+```{r}
+library(raster)
 
+#darat <- raster::stack('./data/study-area-mm.tiff')
+```
+
+
+```{r , echo=FALSE}
+start_time <- Sys.time()
+  beginCluster()
+  
+```
+
+
+```{r}
+library(raster)
+
+#darat <- raster::stack('./data/study-area-mm.tiff')
+co_area_prediction <- raster('./data/gunnison-largerarea-pred_merged_UTM_3m_s1_nodata.tif')
+co_area_aso <- raster('./data/gunnison-largerarea-aso_merged_UTM_3m_s1_nodata.tif')
+```
+
+
+```{r pressure, echo=FALSE}
+library(rgdal)
+crs_latlong <-crs("+proj=longlat +datum=WGS84")
+
+co_area_prediction_wgs84 <- projectRaster(co_area_prediction,crs=crs_latlong,method='ngb')
+co_area_aso_wgs84 <- projectRaster(co_area_aso,crs=crs_latlong,method='ngb')
+
+raster::writeRaster(co_area_prediction_wgs84,'data/region_pred_merged_wgs84_3m_s1_nodata.tif',overwrite=TRUE)
+raster::writeRaster(co_area_aso_wgs84,'data/region_aso_merged_wgs84_3m_s1_nodata.tif',overwrite=TRUE)
+
+#pred <- raster('data/dem_stackedco_demandfriendsnormalized_predv3.tiff')
+#pred_crop <- crop(pred_ref_wgs84,p)
+plot(co_area_prediction_wgs84)
+```
+
+```{r, echo=FALSE}
+# Vector of correspondence
+cols.nb <- c("0" = "blue", "1" = "red")
+library(patchwork)
+plotb <- gplot(co_area_prediction_wgs84) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom") +
+ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='') 
+
+
+plota <- gplot(co_area_aso_wgs84) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+  #theme_bw()+
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none") +
+ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='') 
+
+
+```
+
+```{r , echo=FALSE}
+library('ceramic')
+
+data("wrld_simpl", package = "maptools")
+#im <- cc_location(cbind( -107.1661, 38.81874 ), buffer = 1e5, ype = "mapbox.satellite")
+
+im_co_study_site <- cc_location(extent(co_area_prediction_wgs84), buffer = 1e5, ype = "mapbox.satellite")
+#im <- cc_location(p, ype = "mapbox.terrain-rgb")
+
+#> Preparing to download: 12 tiles at zoom = 6 from 
+#> https://api.mapbox.com/v4/mapbox.light/
+raster::plotRGB(im_co_study_site)
+```
+
+```{r , echo=FALSE}
+ 
+plotc <-  RStoolbox::ggRGB(im_co_study_site)+
+theme(panel.background = element_rect(colour = "black", fill="white")) +
+ggspatial::annotation_scale(location = "bl", width_hint = 0.5) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='') 
+```
+
+```{r , echo=FALSE}
+(plota + plotb ) + 
+  plot_layout(guides = 'keep') + 
+  plot_annotation(tag_levels = 'A')
+ggsave("figs/co_study_area_asopluspred.png",dpi=300,height=12,width=14,units="in")
+
+```
+
+```{r , echo=FALSE}
+plotc/ (plota + plotb ) + 
+  plot_layout(guides = 'keep') + 
+  plot_annotation(tag_levels = 'A')
+ggsave("figs/co_study_area_asopluspred.png",dpi=300,height=12,width=14,units="in")
+
+```
 
 ## Including Plots
 
 You can also embed plots, for example:
+class      : Extent 
+xmin       : -107.1478 
+xmax       : -107.0858 
+ymin       : 38.91909 
+ymax       : 38.94134 
+
 
 ```{r pressure, echo=FALSE}
 #darat_predicted <- raster('./data/study-area-predicted.tiff')
 
-aoi <- extent(c(10.02339, 10.04452, 46.5633, 46.58303 ))
+aoi <- extent(c(-107.1478, -107.0858 , 38.91909 ,38.94134  ))
 p <- aoi
 ```
 
 ```{r}
 library(rgdal)
 
-darat_rg <- readGDAL('./data/study-area-predicted.tiff')
+#darat_rg <- readGDAL('./data/study-area-predicted.tiff')
 #creates a hige file - Skipping
 #writeOGR(darat_rg, layer="band1","data/studyarea.geojson",driver="GeoJSON")
 
@@ -36,7 +153,7 @@ darat_rg <- readGDAL('./data/study-area-predicted.tiff')
 
 ```{r}
 library(sp)
-e <- as(raster::extent(10.02339, 10.04452, 46.5633, 46.58303 ), "SpatialPolygons")
+e <- as(raster::extent(-107.1478, -107.0858 , 38.91909 ,38.94134   ), "SpatialPolygons")
 proj4string(e) <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
 plot(e)
 library(geojson)
@@ -129,6 +246,35 @@ im <- cc_location(p, buffer = 1e5, ype = "mapbox.satellite")
 raster::plotRGB(im)
 ```
 
+# get veg raster
+
+```{r , echo=FALSE}
+
+#veg_co <- raster('data/veg_Gunnison.tiff')
+
+veg_all <- raster('data/Gunnison__chm_2point1by1point6.tif')
+co_area_prediction_wgs84 <- raster('data/region_pred_merged_wgs84_3m_s1_nodata.tif')
+co_area_aso_wgs84 <- raster('data/region_aso_merged_wgs84_3m_s1_nodata.tif')
+
+veg_crop_gunni_study_area<-crop(veg_all,extent(p))
+aso_crop_gunni_study_area<- crop(co_area_aso_wgs84,extent(p))
+pred_crop_gunni_study_area<- crop(co_area_prediction_wgs84,extent(p))
+
+# succeeds 
+xy_stack <- stack(aso_crop_gunni_study_area,pred_crop_gunni_study_area)
+
+veg_crop_gunni_study_area<-crop(veg_all,extent(xy_stack))
+
+
+veg_crop_gunni <- projectRaster(veg_crop_gunni_study_area,xy_stack,method='ngb')
+
+rpredasochmall_study_area <- stack(xy_stack,veg_crop_gunni)
+
+raster::writeRaster(rpredasochmall_study_area,'data/newstudy-co-large.tif',overwrite=TRUE)
+
+```
+
+
 # Clip the prediction
 
 
@@ -141,7 +287,7 @@ Clip the canopy
 
 ```{r , echo=FALSE}
 
-df <- raster::stack('data/newstudy-swiss-large.tif')
+df <- raster::stack('data/newstudy-co-large.tif')
 data_matrix <- rasterToPoints(df)
 head(data_matrix)
 datafra_comb <- data_matrix %>% as.data.frame()
@@ -158,7 +304,7 @@ gplot(df[[3]]) +
  viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
   theme_bw()
 
-ggsave(filename = "figs/swiss_canopyheightmap-large.png",dpi = 300,height=4,width=8,units="in")
+ggsave(filename = "figs/co_canopyheightmap-large.png",dpi = 300,height=4,width=8,units="in")
 ```
 
 ```{r , echo=FALSE}
@@ -183,6 +329,7 @@ confusionMatrix(as.factor(low_veg$aso),as.factor(low_veg$pred),mode = 'prec_reca
 ```
 
 canopy height low 
+# Open
 
 ```{r , echo=FALSE}
 library(caret)
@@ -193,6 +340,7 @@ bare_veg_df <- bare_veg %>% dplyr::mutate(pred_f = as.factor(pred),aso_f = as.fa
 confusionMatrix(as.factor(bare_veg$aso),as.factor(bare_veg$pred),mode = 'prec_recall')
 
 ```
+# forested on canopy height
 
 ```{r , echo=FALSE}
 library(caret)
@@ -250,7 +398,7 @@ plotchm_aoi + plotchm +
   plot_annotation(tag_levels = 'A', title = '',
   subtitle = '',
   caption = 'Mosaic by Mapbox (A)')
-ggsave("figs/swiss_chmr1.png",dpi=300, dev='png',  height=8, width=10,units="in")
+ggsave("figs/co_chmr1.png",dpi=300, dev='png',  height=8, width=10,units="in")
 ```
 
 
@@ -312,7 +460,41 @@ cdensity <- function(x, w) {
 ```
 
 ```{r , echo=FALSE}
-df_cd <- raster::stack('data/newstudywithcd-swiss-large.tif')
+
+m <- c(-10, 2, 0,  2, 100, 1)
+rclmat <- matrix(m, ncol=3, byrow=TRUE)
+r_chm <- reclassify(veg_crop_gunni, rclmat)
+
+cdensity <- function(x, w) {
+	m <- matrix(1, nc=w, nr=w)
+#	m[ceiling(0.5 * length(m))] <- 0
+	f <- focal(x, m, fun=mean)
+	f
+}
+
+# 225m2
+#canden5by5wc <- cd(split_chm1, w=5)
+c_density3by3wc <- cdensity(r_chm, w=3)
+
+
+gplot(c_density3by3wc) + 
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+
+ggsave(filename = "figs/densitymap_co_study_area.png",dpi = 300,height=4,width=8,units="in")
+```
+
+
+```{r , echo=FALSE}
+df_cd <- stack(xy_stack,c_density3by3wc)
+
+raster::writeRaster(df_cd,'data/newstudywithcd-co-large.tif',overwrite=TRUE)
+```
+
+
+```{r , echo=FALSE}
+df_cd <- raster::stack('./data/newstudywithcd-co-large.tif')
 data_matrix_cd <- rasterToPoints(df_cd)
 head(data_matrix_cd)
 datafra_comb_cd <- data_matrix_cd %>% as.data.frame()
@@ -330,9 +512,9 @@ gplot(df_cd[[3]]) +
  viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
   theme_bw()
 
-ggsave(filename = "figs/swiss_densitymap.png",dpi = 300,height=4,width=8,units="in")
+ggsave(filename = "figs/co_densitymap_study_area.png",dpi = 300,height=4,width=8,units="in")
 ```
-
+# Dense
 
 ```{r , echo=FALSE}
 library(caret)
@@ -345,6 +527,8 @@ confusionMatrix(as.factor(dense_veg$aso),as.factor(dense_veg$pred),mode = 'prec_
 
 ```
 
+# Medium
+
 ```{r , echo=FALSE}
 library(caret)
 datafra_comb1m_cd <- datafra_comb_cd %>% dplyr::filter(!is.na(can_den) & can_den > .5  & (can_den < .75 | can_den == .75)) %>% as.data.frame()
@@ -355,6 +539,7 @@ dense_veg <- datafra_comb1m_cd %>% dplyr::filter(!is.na(can_den)) %>% dplyr::fil
 confusionMatrix(as.factor(dense_veg$aso),as.factor(dense_veg$pred),mode = 'prec_recall')
 
 ```
+# sparse
 
 ```{r , echo=FALSE}
 library(caret)
@@ -383,7 +568,7 @@ cols.dc <- c("1" = "red", "2" = "blue", "3" = "green")
 #old
 #rc_dce <- reclassify(df_dce[[3]], c(-Inf,0,1,0,30,2, 30,Inf,3))
 #new
-rc_density<- reclassify(df_cd[[3]], c(-Inf,0.5,1,0.5,0.75,2, 0.75,1,3))
+rc_density<- raster::reclassify(df_cd[[3]], c(-Inf,0.5,1,0.5,0.75,2, 0.75,1,3))
 
 plotdensity<- gplot(rc_density) + 
   geom_tile(aes(fill = as.character(value)) ) +
@@ -412,7 +597,33 @@ plotdensity_aoi + plotdensity +
   plot_annotation(tag_levels = 'A', title = '',
   subtitle = '',
   caption = 'Mosaic by Mapbox (A)')
-ggsave("figs/swiss_densityr1.png",dpi=300, dev='png',  height=8, width=10,units="in")
+ggsave("figs/co_densityr1.png",dpi=300, dev='png',  height=8, width=10,units="in")
+```
+
+Look at DCe
+
+```{r , echo=FALSE}
+planet_img_co <-raster('data/20180524_172634_0f2d_3B_AnalyticMS_SR.tif')
+dce_met1 <- raster('./data/dce_SplitRas1_out.asc')
+dce_met2 <- raster('./data/dce_SplitRas2_out.asc')
+dce_met3 <- raster('./data/dce_SplitRas4_out.asc')
+dce_met4 <- raster('./data/dce_SplitRas5_out.asc')
+
+dce_met <- raster::merge(dce_met1,dce_met2,dce_met3,dce_met4)
+
+projection(dce_met) <- projection(planet_img_co)
+
+dce_ref_wgs84 <- projectRaster(dce_met,crs=crs_latlong,method='ngb')
+cropped_dce <- crop(dce_ref_wgs84, extent(xy_stack))
+
+#aso_crop_gunni_study_area,pred_crop_gunni_study_area
+aso_crop_reprdce <- projectRaster(aso_crop_gunni_study_area,cropped_dce,method='ngb')
+pred_crop_reprdce<- projectRaster(pred_crop_gunni_study_area,cropped_dce,method='ngb')
+
+
+df_dce <- stack(aso_crop_reprdce,pred_crop_reprdce,cropped_dce)
+
+raster::writeRaster(df_dce,'data/newstudywithdce-co-large.tif',overwrite=TRUE)
 ```
 
 
@@ -423,7 +634,7 @@ Look at DCe
 Plot the DCE Metrics
 
 ```{r , echo=FALSE}
-df_dce <- raster::stack('data/newstudywithdce-swiss-large.tif')
+df_dce <- raster::stack('data/newstudywithdce-co-large.tif')
 ```
 
 ```{r , echo=FALSE}
@@ -445,8 +656,9 @@ gplot(df_dce[[3]]) +
  viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
   theme_bw()
 
-ggsave(filename = "figs/swiss_dcemap.png",dpi = 300,height=4,width=8,units="in")
+ggsave(filename = "figs/co_study_area_dcemap.png",dpi = 300,height=4,width=8,units="in")
 ```
+
 ```{r , echo=FALSE}
 plotdce_aoi<-  RStoolbox::ggRGB(aoip)+
 theme(panel.background = element_rect(colour = "black", fill="white")) +
@@ -493,7 +705,7 @@ plotdce_aoi + plotdce +
   plot_annotation(tag_levels = 'A', title = '',
   subtitle = '',
   caption = 'Mosaic by Mapbox (A)')
-ggsave("figs/swiss_dcer1.png",dpi=300, dev='png',  height=8, width=10,units="in")
+ggsave("figs/co_dcer1.png",dpi=300, dev='png',  height=8, width=10,units="in")
 ```
 # Dense
 
@@ -520,6 +732,7 @@ confusionMatrix(as.factor(med_dce$aso),as.factor(med_dce$pred),mode = 'prec_reca
 
 ```
 
+# Sparse
 ```{r , echo=FALSE}
 library(caret)
 datafra_comb_dce <- datafra_comb_orig %>% dplyr::filter(!is.na(dce) & dce > 30) %>% as.data.frame()
@@ -638,3 +851,9 @@ ggsave(filename = "figs/modis_crop_aou.png",dpi = 300,height=4,width=8,units="in
 
 
 
+```{r , echo=FALSE}
+endCluster()
+end_time <- Sys.time()
+end_time - start_time
+
+```
