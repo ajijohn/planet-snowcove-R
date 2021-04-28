@@ -475,6 +475,9 @@ cdensity <- function(x, w) {
 # 225m2
 #canden5by5wc <- cd(split_chm1, w=5)
 c_density3by3wc <- cdensity(r_chm, w=3)
+c_density9by9wc <- cdensity(r_chm, w=9)
+c_density100by100wc <- cdensity(r_chm, w=27)
+
 
 
 gplot(c_density3by3wc) + 
@@ -483,13 +486,48 @@ gplot(c_density3by3wc) +
   theme_bw()
 
 ggsave(filename = "figs/densitymap_co_study_area.png",dpi = 300,height=4,width=8,units="in")
+
+gplot(c_density9by9wc) + 
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+ggsave(filename = "figs/densitymap30_co_study_area.png",dpi = 300,height=4,width=8,units="in")
+
+gplot(c_density100by100wc) + 
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+ggsave(filename = "figs/densitymap100_co_study_area.png",dpi = 300,height=4,width=8,units="in")
+
+
 ```
 
+```{r , echo=FALSE}
+
+glad_file <- raster('./data/Forest_height_2019_NAM.tif')
+
+glad_cropped_aoi <-crop(glad_file,extent(p))
+
+
+glad_r_chm <- reclassify(glad_cropped_aoi, rclmat)
+
+glad_density9by9wc <- cdensity(glad_r_chm, w=3)
+
+gplot(glad_density9by9wc) + 
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+ggsave(filename = "figs/gladmap30_co_study_area.png",dpi = 300,height=4,width=8,units="in")
+
+```
 
 ```{r , echo=FALSE}
 df_cd <- stack(xy_stack,c_density3by3wc)
+df_cd_9 <- stack(xy_stack,c_density9by9wc)
 
 raster::writeRaster(df_cd,'data/newstudywithcd-co-large.tif',overwrite=TRUE)
+raster::writeRaster(df_cd,'data/newstudywithcdat30-co-large.tif',overwrite=TRUE)
+
 ```
 
 
