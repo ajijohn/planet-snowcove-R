@@ -517,7 +517,7 @@ gplot(glad_density9by9wc) +
   geom_tile(aes(fill = value))  +
  viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
   theme_bw()
-ggsave(filename = "figs/gladmap30_co_study_area.png",dpi = 300,height=4,width=8,units="in")
+ggsave(filename = "figs/gladmap100_co_study_area.png",dpi = 300,height=4,width=8,units="in")
 
 ```
 
