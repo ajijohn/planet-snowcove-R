@@ -67,21 +67,22 @@ theme(panel.background = element_rect(colour = "black", fill="lightblue"))
 # Vector of correspondence
 cols.nb <- c("0" = "blue", "1" = "red")
 library(patchwork)
-plotb <- gplot(prediction_SWiss) + 
+plotma <- gplot(prediction_SWiss) + 
   geom_tile(aes(fill = as.character(value)) ) +
    coord_sf(crs = 4326)+
   scale_fill_manual(values = cols.nb,
                     breaks = 0:1,
                     labels = c("No snow", "Snow"),
                     name = "") +
-theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom") +
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
 ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
     ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
        pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
   labs(x='',  y='') 
 
 
-plota <- gplot(cropped_aso_swiss) + 
+plotmb <- gplot(cropped_aso_swiss) + 
   geom_tile(aes(fill = as.character(value)) ) +
    coord_sf(crs = 4326)+
   scale_fill_manual(values = cols.nb,
@@ -89,7 +90,8 @@ plota <- gplot(cropped_aso_swiss) +
                     labels = c("No snow", "Snow"),
                     name = "") +
   #theme_bw()+
-theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none") +
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
 ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
     ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
        pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
@@ -97,6 +99,8 @@ ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
 
 
 ```
+
+
 
 ```{r , echo=FALSE}
 library('ceramic')
@@ -107,11 +111,53 @@ data("wrld_simpl", package = "maptools")
 im_swiss_site <- cc_location(extent(cropped_aso_swiss), buffer = 1e5, ype = "mapbox.satellite")
 #im <- cc_location(p, ype = "mapbox.terrain-rgb")
 
+#raster::writeRaster(im_swiss_site,'data/swiss-_aoi.tiff',overwrite=TRUE)
 #> Preparing to download: 12 tiles at zoom = 6 from 
 #> https://api.mapbox.com/v4/mapbox.light/
 raster::plotRGB(im_swiss_site)
 ```
 
+
+
+```{r , echo=FALSE}
+aoi <- extent(c(10.02339, 10.04452, 46.5633, 46.58303 ))
+
+poly_study <- as(aoi,'SpatialPolygons')
+
+poly_study <- fortify(poly_study)
+```
+
+```{r , echo=FALSE}
+aoi_SWiss <- raster::stack('./data/swiss-_aoi_wgs84.tif')
+
+
+plotmc <- RStoolbox::ggRGB(aoi_SWiss)+
+    coord_sf(crs = 4326)+
+theme(panel.background = element_rect(colour = "black", fill="white"),
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+ggspatial::annotation_scale(location = "bl", width_hint = 0.5) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  geom_polygon(aes(long,lat), alpha = 0.2, color='green',data = poly_study) +
+# coord_equal() +
+  labs(x='',  y='') 
+
+```
+
+Area of the study
+```{r , echo=FALSE}
+library(patchwork)
+layout <- "
+ABC
+"
+ plotmc + plotmb + plotma  +
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = 'A', title = '',
+  subtitle = '',
+  caption = 'Mapbox (C)') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggsave("figs/swiss_all_ms.png",dpi=300, dev='png',  height=6, width=10,units="in")
+```
 
 ```{r , echo=FALSE}
 library(RColorBrewer)

@@ -637,7 +637,195 @@ plotdensity_aoi + plotdensity +
   caption = 'Mosaic by Mapbox (A)')
 ggsave("figs/co_densityr1.png",dpi=300, dev='png',  height=8, width=10,units="in")
 ```
+# Four classes for canopy density
 
+
+```{r , echo=FALSE}
+
+m2 <- c(-10, 1, 0,  1, 100, 1)
+rclmat_v2 <- matrix(m2, ncol=3, byrow=TRUE)
+r_chm_v2 <- reclassify(veg_crop_gunni, rclmat_v2)
+
+cdensity <- function(x, w) {
+	m <- matrix(1, nc=w, nr=w)
+#	m[ceiling(0.5 * length(m))] <- 0
+	f <- focal(x, m, fun=mean)
+	f
+}
+
+# 225m2
+#canden5by5wc <- cd(split_chm1, w=5)
+c_density3by3wc_v2 <- cdensity(r_chm_v2, w=3)
+c_density9by9wc_v2 <- cdensity(r_chm_v2, w=9)
+c_density100by100wc_v2 <- cdensity(r_chm_v2, w=27)
+c_density500by500wc_v2 <- cdensity(r_chm_v2, w=135)
+
+
+
+gplot(c_density3by3wc_v2) + 
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+
+ggsave(filename = "figs/densitymap_co_study_area_v2.png",dpi = 300,height=4,width=8,units="in")
+
+gplot(c_density9by9wc_v2) + 
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+ggsave(filename = "figs/densitymap30_co_study_area_v2.png",dpi = 300,height=4,width=8,units="in")
+
+gplot(c_density100by100wc_v2) + 
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+ggsave(filename = "figs/densitymap100_co_study_area_v2.png",dpi = 300,height=4,width=8,units="in")
+
+
+gplot(c_density500by500wc_v2) + 
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+ggsave(filename = "figs/densitymap500_co_study_area_v2.png",dpi = 300,height=4,width=8,units="in")
+
+
+```
+```{r , echo=FALSE}
+
+cols.dc2 <- c("0"="red","1" = "grey", "2" = "blue", "3" = "green")
+#old
+#rc_dce <- reclassify(df_dce[[3]], c(-Inf,0,1,0,30,2, 30,Inf,3))
+#new
+rc_density_v2<- raster::reclassify(c_density3by3wc_v2, c(-Inf,0.10,0,0.10,0.40,1,0.40,0.75,2, 0.75,1,3))
+
+plotdensity_v2<- gplot(rc_density_v2) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.dc2,
+                    breaks = c(0,1,2,3),
+                    labels = c("Open","Sparse", "Medium","Dense"),
+                    name = "") +
+  #theme_bw()+
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom") +
+ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='',fill="Vegetation:",color="Vegetation:") 
+  
+```
+
+```{r , echo=FALSE}
+library(patchwork)
+layout <- "
+AAAA
+BBCC
+BBCC
+"
+plotdensity_aoi + plotdensity +plotdensity_v2+
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = 'A', title = '',
+  subtitle = '',
+  caption = 'Mosaic by Mapbox (A)')
+ggsave("figs/co_densityr1_revised.png",dpi=300, dev='png',  height=8, width=10,units="in")
+```
+
+```{r , echo=FALSE}
+library(patchwork)
+layout <- "
+AABB
+AABB
+"
+ plotdensity +plotdensity_v2+
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = 'A', title = '',
+  subtitle = '',
+  caption = 'Mosaic by Mapbox (A)')
+ggsave("figs/co_densityr1_comparison.png",dpi=300, dev='png',  height=8, width=10,units="in")
+```
+
+```{r , echo=FALSE}
+library(patchwork)
+
+ plotdensity_aoi +  plot_annotation(tag_levels = 'A', title = '',
+  subtitle = '',
+  caption = 'Mosaic by Mapbox (A)')
+ggsave("figs/co_aoi.png",dpi=300, dev='png',  height=8, width=10,units="in")
+```
+
+# redo the metric
+```{r , echo=FALSE}
+df_cd_v2 <- stack(xy_stack,c_density3by3wc_v2)
+#df_cd_9 <- stack(xy_stack,c_density9by9wc)
+
+raster::writeRaster(df_cd_v2,'data/newstudywithcd-co-large_v2.tif',overwrite=TRUE)
+#raster::writeRaster(df_cd,'data/newstudywithcdat30-co-large.tif',overwrite=TRUE)
+
+```
+
+
+```{r , echo=FALSE}
+df_cd_v2 <- raster::stack('./data/newstudywithcd-co-large_v2.tif')
+data_matrix_cd <- rasterToPoints(df_cd_v2)
+head(data_matrix_cd)
+datafra_comb_cd <- data_matrix_cd %>% as.data.frame()
+
+colnames(datafra_comb_cd) <- c('x','y','aso','pred','can_den')
+```
+
+#DENSE
+
+```{r , echo=FALSE}
+library(caret)
+datafra_comb1m_cd <- datafra_comb_cd %>% dplyr::filter(!is.na(can_den) & can_den > .75) %>% as.data.frame()
+
+dense_veg <- datafra_comb1m_cd %>% dplyr::filter(!is.na(can_den)) %>% dplyr::filter(can_den > .75 ) %>% as.data.frame()
+dense_veg_df <- dense_veg %>% dplyr::mutate(pred_f = as.factor(pred),aso_f = as.factor(aso)) %>% as.data.frame()
+
+confusionMatrix(as.factor(dense_veg$aso),as.factor(dense_veg$pred),mode = 'prec_recall')
+
+```
+
+# Medium
+
+```{r , echo=FALSE}
+library(caret)
+datafra_comb1m_cd <- datafra_comb_cd %>% dplyr::filter(!is.na(can_den) & can_den > .40  & (can_den < .75 | can_den == .75)) %>% as.data.frame()
+
+dense_veg <- datafra_comb1m_cd %>% dplyr::filter(!is.na(can_den)) %>% dplyr::filter(  can_den > .40 & (can_den < .75 |  can_den == .75) ) %>% as.data.frame()
+
+
+confusionMatrix(as.factor(dense_veg$aso),as.factor(dense_veg$pred),mode = 'prec_recall')
+
+```
+
+# Sparse
+
+```{r , echo=FALSE}
+library(caret)
+datafra_comb1m_cd <- datafra_comb_cd %>% dplyr::filter(!is.na(can_den) & can_den > .10  & (can_den < .40 | can_den == .40)) %>% as.data.frame()
+
+dense_veg <- datafra_comb1m_cd %>% dplyr::filter(!is.na(can_den)) %>% dplyr::filter(  can_den > .10 & (can_den < .40 |  can_den == .40) ) %>% as.data.frame()
+
+
+confusionMatrix(as.factor(dense_veg$aso),as.factor(dense_veg$pred),mode = 'prec_recall')
+
+```
+
+# open
+
+```{r , echo=FALSE}
+datafra_comb1m_cd <- datafra_comb_cd %>% dplyr::filter(!is.na(can_den) & can_den < .10) %>% as.data.frame()
+
+dense_veg <- datafra_comb1m_cd %>% dplyr::filter(!is.na(can_den)) %>% dplyr::filter(can_den < .10 ) %>% as.data.frame()
+dense_veg_df <- dense_veg %>% dplyr::mutate(pred_f = as.factor(pred),aso_f = as.factor(aso)) %>% as.data.frame()
+
+confusionMatrix(as.factor(dense_veg$aso),as.factor(dense_veg$pred),mode = 'prec_recall')
+
+
+```
+
+
+# 
 Look at DCe
 
 ```{r , echo=FALSE}

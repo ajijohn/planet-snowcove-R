@@ -1,0 +1,44 @@
+---
+title: "SnowEx-GrandMesa"
+author: "Aji John"
+date: "5/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Merge rasters
+
+
+```{r }
+library(raster)
+
+gm1  <- raster("data/pred_merged_UTM_3m_s1_nodata_grandmesa_scene_1.tif")
+gm2 <-raster("data/pred_merged_UTM_3m_s1_nodata_grandmesa_scene_2.tif")
+gm3 <- raster("data/pred_merged_UTM_3m_s1_nodata_grandmesa_scene_3.tif")
+
+# Resample
+#x1 <- resample(r1, crop(x, r1))
+#x2 <- resample(r2, crop(x, r2))
+
+# Merge rasters. Make sure to use the right order
+m <- merge(gm1, gm2,gm3)
+
+# Write output
+writeRaster(m,
+            filename = file.path("data/pred_merged_UTM_3m_s1_nodata_grandmesa.tif"),
+            format = "GTiff",
+            overwrite = TRUE)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
