@@ -97,9 +97,23 @@ ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
        pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
   labs(x='',  y='') 
 
+# Area calc
+
+#raster::area(projectRaster(aoi_SWiss[[1]], crs = "+init=epsg:32631"))
+# All area 733.5
+# class      : RasterLayer 
+#dimensions : 461, 662, 305182  (nrow, ncol, ncell)
+#resolution : 22.5, 32.6  (x, y)
+#extent     : 1029602, 1044497, 5178034, 5193063  (xmin, xmax, ymin, ymax)
+#crs        : +proj=utm +zone=31 +datum=WGS84 +units=m +no_defs 
+#source     : memory
+#names      : layer 
+#values     : 733.5, 733.5  (min, max)
+#This is in Km2
 
 ```
 
+733.5
 
 
 ```{r , echo=FALSE}

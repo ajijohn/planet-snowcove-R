@@ -36,6 +36,22 @@ Load aoi and plot
 aoi_large_SWiss <-raster::stack('data/newstudy-swiss-large_aoi_wgs84.tif')
 plotRGB(aoi_large_SWiss)
 ```
+Area of the snipped region
+```{r}
+
+raster::area(projectRaster(aoi_large_SWiss[[1]], crs = "+init=epsg:32631"))
+```
+
+
+class      : RasterLayer 
+dimensions : 615, 696, 428040  (nrow, ncol, ncell)
+resolution : 2.67, 3.87  (x, y)
+extent     : 1038000, 1039858, 5180628, 5183008  (xmin, xmax, ymin, ymax)
+crs        : +proj=utm +zone=31 +datum=WGS84 +units=m +no_defs 
+source     : memory
+names      : layer 
+values     : 10.3329, 10.3329  (min, max)
+
 
 ```{r}
 combined_CH_Raster_lage_SWiss <-raster::stack('data/newstudy-swiss-large.tif')
