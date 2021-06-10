@@ -785,6 +785,19 @@ confusionMatrix(as.factor(dense_veg$aso),as.factor(dense_veg$pred),mode = 'prec_
 
 ```
 
+# Medium 2
+
+```{r , echo=FALSE}
+library(caret)
+datafra_comb1m_cd <- datafra_comb_cd %>% dplyr::filter(!is.na(can_den) & can_den > .5  & (can_den < .75 | can_den == .75)) %>% as.data.frame()
+
+dense_veg <- datafra_comb1m_cd %>% dplyr::filter(!is.na(can_den)) %>% dplyr::filter(  can_den > .5 & (can_den < .75 |  can_den == .75) ) %>% as.data.frame()
+
+
+confusionMatrix(as.factor(dense_veg$aso),as.factor(dense_veg$pred),mode = 'prec_recall')
+
+```
+
 # Medium
 
 ```{r , echo=FALSE}
@@ -792,6 +805,19 @@ library(caret)
 datafra_comb1m_cd <- datafra_comb_cd %>% dplyr::filter(!is.na(can_den) & can_den > .40  & (can_den < .75 | can_den == .75)) %>% as.data.frame()
 
 dense_veg <- datafra_comb1m_cd %>% dplyr::filter(!is.na(can_den)) %>% dplyr::filter(  can_den > .40 & (can_den < .75 |  can_den == .75) ) %>% as.data.frame()
+
+
+confusionMatrix(as.factor(dense_veg$aso),as.factor(dense_veg$pred),mode = 'prec_recall')
+
+```
+
+# sparse 2
+
+```{r , echo=FALSE}
+library(caret)
+datafra_comb1m_cd <- datafra_comb_cd %>% dplyr::filter(!is.na(can_den) & can_den < .5) %>% as.data.frame()
+
+dense_veg <- datafra_comb1m_cd %>% dplyr::filter(!is.na(can_den)) %>% dplyr::filter(  can_den < .50  ) %>% as.data.frame()
 
 
 confusionMatrix(as.factor(dense_veg$aso),as.factor(dense_veg$pred),mode = 'prec_recall')

@@ -494,3 +494,136 @@ m %>%
 ```
 
 
+
+Do the complete plot
+```{r, echo=FALSE}
+
+gunniasoandpred <- raster::stack('data/asopluspredclippedplanet.tiff')
+```
+
+```{r, echo=FALSE}
+# Vector of correspondence
+cols.nb <- c("0" = "blue", "1" = "red")
+library(patchwork)
+plotga <- gplot(aso_co) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='') 
+
+
+plotgb <- gplot(pred_co) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+  #theme_bw()+
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='') 
+
+# Area calc
+
+#raster::area(projectRaster(aoi_SWiss[[1]], crs = "+init=epsg:32631"))
+# All area 733.5
+# class      : RasterLayer 
+#dimensions : 461, 662, 305182  (nrow, ncol, ncell)
+#resolution : 22.5, 32.6  (x, y)
+#extent     : 1029602, 1044497, 5178034, 5193063  (xmin, xmax, ymin, ymax)
+#crs        : +proj=utm +zone=31 +datum=WGS84 +units=m +no_defs 
+#source     : memory
+#names      : layer 
+#values     : 733.5, 733.5  (min, max)
+#This is in Km2
+
+```
+
+```{r , echo=FALSE}
+# Area calc
+
+raster::area(projectRaster(gunniasoandpred[[2]], crs = "+init=epsg:32631"))
+# All area 733.5
+# class      : RasterLayer 
+#dimensions : 461, 662, 305182  (nrow, ncol, ncell)
+#resolution : 22.5, 32.6  (x, y)
+#extent     : 1029602, 1044497, 5178034, 5193063  (xmin, xmax, ymin, ymax)
+#crs        : +proj=utm +zone=31 +datum=WGS84 +units=m +no_defs 
+#source     : memory
+#names      : layer 
+#values     : 733.5, 733.5  (min, max)
+#This is in Km2
+
+```
+
+
+
+```{r , echo=FALSE}
+library('ceramic')
+
+data("wrld_simpl", package = "maptools")
+#im <- cc_location(cbind( -107.1661, 38.81874 ), buffer = 1e5, ype = "mapbox.satellite")
+
+im_gunni_site <- cc_location(extent(gunniasoandpred[[2]]), buffer = 1e5, ype = "mapbox.satellite")
+#im <- cc_location(p, ype = "mapbox.terrain-rgb")
+
+#raster::writeRaster(im_gunni_site,'data/Gunni-aoi.tiff',overwrite=TRUE)
+#raster::writeRaster(im_swiss_site,'data/swiss-_aoi.tiff',overwrite=TRUE)
+#> Preparing to download: 12 tiles at zoom = 6 from 
+#> https://api.mapbox.com/v4/mapbox.light/
+raster::plotRGB(im_gunni_site)
+```
+
+
+
+```{r , echo=FALSE}
+gunni_aoi <- extent(aoi_gunni_stacked)
+
+poly_study_gunni <- as(gunni_aoi,'SpatialPolygons')
+
+poly_study_gunni <- fortify(poly_study_gunni)
+```
+
+```{r , echo=FALSE}
+aoi_Gunni <- raster::stack('./data/Gunni-aoi_wgs84.tif')
+
+
+plotgc <- RStoolbox::ggRGB(aoi_Gunni)+
+    coord_sf(crs = 4326)+
+theme(panel.background = element_rect(colour = "black", fill="white"),
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+ggspatial::annotation_scale(location = "bl", width_hint = 0.5) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  geom_polygon(aes(long,lat), alpha = 0.2, color='green',data = poly_study_gunni) +
+# coord_equal() +
+  labs(x='',  y='') 
+
+```
+
+Area of the study
+```{r , echo=FALSE}
+library(patchwork)
+layout <- "
+ABC
+"
+ plotgc + plotgb + plotga  +
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = 'A', title = '',
+  subtitle = '',
+  caption = 'Mapbox (C)') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggsave("figs/gunnison_all_ms.png",dpi=300, dev='png',  height=6, width=10,units="in")
+```

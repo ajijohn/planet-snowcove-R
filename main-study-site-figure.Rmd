@@ -121,7 +121,8 @@ p + geom_polygon(fill="white",color = "black", size = 0.2) +
     coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
      geom_point(aes(x = -120.2413, y=37.9627), ,size=3, label = 'Upper Tuolumne',  color = "red", alpha = 0.25) + 
     geom_point(aes(x = -106.9253, y=38.5458),,size=3, label = 'Upper Gunnison', color = "red", alpha = 0.25) +
-   annotate("text", x = -119.25, y=37.89, label = 'Upper Tuolumne', hjust = 0.1,, colour = "black",size = 3) +     annotate("text", x = -107.14, y=39.08, label = 'Upper Gunnison', hjust = 0.1, colour = "black", size = 3) +
+   annotate("text", x = -119.25, y=37.89, label = 'Upper Tuolumne', hjust = 0.1,, colour = "black",size = 3) +  
+  annotate("text", x = -107.14, y=39.08, label = 'Upper Gunnison', hjust = 0.1, colour = "black", size = 3) +
     guides(fill= FALSE) + theme_minimal(base_size = 15)+
    #theme_classic() +
   labs(title = "Study Sites", seze="", x= "Longitude", y="Latitude",
@@ -145,8 +146,11 @@ p <- ggplot(data = world_c,
 p + geom_polygon(fill="white",color = "black", size = 0.2) +
   coord_fixed() +
      geom_point(aes(x = -120.2413, y=37.9627), ,size=3, label = 'Upper Tuolumne',  color = "red", alpha = 0.25) + 
-    geom_point(aes(x = 10.03, y=46.5818),size=3, label = 'Davos', color = "red", alpha = 0.25) +
-   annotate("text", x = -119.25, y=37.89, label = 'Upper Tuolumne', hjust = 0.1,, colour = "black",size = 3) +     annotate("text", x=10.03, y=46.5818, label = 'Davos', hjust = 0.1, colour = "black", size = 3) +
+    geom_point(aes(x = 10.03, y=46.5818),size=3, label = 'Engaldine,Switzerland', color = "red", alpha = 0.25) +
+      geom_point(aes(x = -106.9253, y=38.5458),,size=3, label = 'Upper Gunnison', color = "red", alpha = 0.25) +
+   annotate("text", x = -119.25, y=37.89, label = 'Upper Tuolumne', hjust = 0.1,colour = "black",size = 2) +   
+  annotate("text", x=10.03, y=46.5818, label = 'Engaldine', hjust = 0.1, colour = "black", size = 2) +
+   annotate("text", x = -107.14, y=39.08, label = 'Upper Gunnison', hjust = 0.1, colour = "black", size = 2) +
     guides(fill= FALSE) + theme_minimal(base_size = 15)+
    #theme_classic() +
   labs(title = "", seze="", x= "Longitude", y="Latitude",
