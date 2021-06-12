@@ -170,6 +170,53 @@ ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
    
 ```
 
+Canopy and not canopy plot
+```{r , echo=FALSE}
+
+ostudyarea <- raster('data/DEMplusCOPredictions/20180524_172637_0f2d_3B_AnalyticMS_SR_clip_merged.tif')
+chmco <- raster('data/Gunnison__chm_2point1by1point6.tif')
+
+   aso_byscene <- crop(aso_colorado, extent(ostudyarea))
+   chm_bystudyarea <- crop(chmco, extent(ostudyarea))
+   
+   aso_byscene <-  projectRaster(aso_byscene,ostudyarea,method="ngb")
+   
+    chm_byscene <-  projectRaster(chm_bystudyarea,ostudyarea,method="ngb")
+    
+  bysceneasoclip_costudyarea <- stack(aso_byscene,ostudyarea,chm_byscene)
+  data_matrix_byscene_chm<- as.data.frame(rasterToPoints(bysceneasoclip_costudyarea))
+  colnames(data_matrix_byscene_chm) <- c('longitude','latitude','aso','pred','canopyheight')
+  ddata_matrix_byscene_chm_filtered <- data_matrix_byscene_chm[complete.cases(data_matrix_byscene_chm),]
+  cf_chm <- confusionMatrix(as.factor(ddata_matrix_byscene_chm_filtered$aso),as.factor(ddata_matrix_byscene_chm_filtered$pred),mode = 'prec_recall')
+  cf_chm
+  
+  ddata_matrix_byscene_chm_filtered_chm_area <- ddata_matrix_byscene_chm_filtered %>% filter(canopyheight > 1) %>% as.data.frame()
+    ddata_matrix_byscene_chm_filtered_nonchm_area <- ddata_matrix_byscene_chm_filtered %>% filter(canopyheight <= 1) %>% as.data.frame()
+
+cm_scenecanopy <- confusionMatrix(as.factor(ddata_matrix_byscene_chm_filtered_chm_area$aso),as.factor(ddata_matrix_byscene_chm_filtered_chm_area$pred),mode = 'prec_recall')
+cm_scenenocanopy <- confusionMatrix(as.factor(ddata_matrix_byscene_chm_filtered_nonchm_area$aso),as.factor(ddata_matrix_byscene_chm_filtered_nonchm_area$pred),mode = 'prec_recall')
+
+```
+
+```{r , echo=FALSE}
+plo_focussed_scene <- as.data.frame( t(cm_scenecanopy$byClass))
+plo_focussed_scene <- rbind(plo_focussed_scene,t(cm_scenenocanopy$byClass))
+
+plo_focussed_scene$type <- c('FA','OA')
+
+plo_focussed_scene_df <- plo_focussed_scene %>% pivot_longer(!type) %>% as.data.frame()
+
+plo_focussed_scene_df %>% 
+  mutate(value = round(value,2)) %>% 
+    dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy")) %>%
+  ggplot() + geom_bar(aes(name,value,fill = type), position = "dodge",stat="identity", width=.5) +
+   geom_text(aes(name,value,label=value, group=type), position=position_dodge(width=0.5), vjust=-0.3) +
+ labs(x="" , y="",subtitle="",fill="") + theme_minimal(base_size = 18)+
+  ggpubr::theme_pubclean()
+ggsave(filename = "figs/scenepreditCO_both_rev.png",dpi = 300,height=4,width=8,units="in")
+
+
+```  
 
 Area of the study  (Original)
 ```{r , echo=FALSE}
