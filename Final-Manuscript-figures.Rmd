@@ -1,0 +1,32 @@
+---
+title: "R Notebook - final figures"
+output: html_notebook
+---
+
+## R Markdown
+
+Read the layer
+```{r}
+library(raster)
+library(tidyverse)
+
+```
+
+get the area
+
+
+
+```{r , echo=FALSE}
+library(patchwork)
+layout <- "
+AB
+AB"
+ swiss_plot+   
+  plot_gunni+
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = 'A', title = '',
+  subtitle = '',
+  caption = '') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggsave("figs/metrics.png",dpi=300, dev='png',  height=10, width=12,units="in")
+```

@@ -74,6 +74,10 @@ Add file names
 
 ```{r }
 
+
+ploch$Accuracy <- (ploch$Sensitivity * ploch$Prevalence) + ( (ploch$Specificity) * (1-ploch$Prevalence))
+head(ploch)
+
 ploch$filename <- rastlist
 
 plotch_longer_df <- ploch %>% pivot_longer(!filename) %>% as.data.frame()
@@ -81,20 +85,34 @@ plotch_longer_df <- ploch %>% pivot_longer(!filename) %>% as.data.frame()
 
 ```{r }
 library(ggplot2)
+
+df_swiss <- plotch_longer_df %>% 
+   group_by(name) %>%
+          dplyr::summarise(avg_metric = mean(value),
+                                        se = sd(value)/sqrt(length(value))) %>%
+  dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy","Accuracy")) %>%
+  as.data.frame()
+
+write_csv(df_swiss,file='./data/DEMplusCHPredictions/processed-data.csv')
+
+
 # Default bar plot
 pch<- plotch_longer_df %>% 
    group_by(name) %>%
           dplyr::summarise(avg_metric = mean(value),
                                         se = sd(value)/sqrt(length(value))) %>%
-  dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy")) %>%
+  dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy" ,"Accuracy")) %>%
 ggplot(aes(x=name, y=avg_metric)) + 
   geom_bar(stat="identity",color="black" , 
            position=position_dodge()) +
   geom_errorbar(aes(ymin=avg_metric-se, ymax=avg_metric+se), width=.2,
                  position=position_dodge(.9),color="#7FC97F") +
   theme_minimal(base_size = 18)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   ggpubr::theme_cleveland() +
-  labs(x="Metric",y="Value")
+  labs(x="",y="Value")
+swiss_plot <- pch
+
 print(pch)
 ggsave("figs/all_scenes_ch.png",dpi=300, dev='png',  height=8, width=10,units="in")
 # Finished bar plot
