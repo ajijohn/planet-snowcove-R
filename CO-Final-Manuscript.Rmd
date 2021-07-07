@@ -206,6 +206,9 @@ rc_density_gunni_ms_r3by3 <- focal(rc_density_gunni_ms, w=matrix(1,3,3), fun=mea
 # 30m by 30m
 rc_density_gunni_ms_r30by30 <- focal(rc_density_gunni_ms, w=matrix(1,29,29), fun=mean)
 
+rc_density_gunni_ms_r500by500 <- focal(rc_density_gunni_ms, w=matrix(1,145,145), fun=mean)
+rc_density_gunni_ms_r500<- reclassify(rc_density_gunni_ms_r500by500, c(1,1,1,1,2,2,2,3,3))
+
 rc_density_gunni_ms_r1<- reclassify(rc_density_gunni_ms_r30by30, c(1,1,1,1,2,2,2,3,3))
 
 plotgunnia1_r1<- gplot(rc_density_gunni_ms_r1) + 
