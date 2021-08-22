@@ -351,20 +351,5 @@ GHI
 ggsave("figs/gunni_aoi_ms_revised.png",dpi=300, dev='png',  height=8, width=12,units="in")
 ```
 
-Area of the study
-```{r , echo=FALSE}
-library(patchwork)
-layout <- "
-ABC
-"
- plotc1 + plotc2 + plotc3  +
-  plot_layout(design = layout) +
-  plot_annotation(tag_levels = 'A', title = '',
-  subtitle = '',
-  caption = 'Mapbox (C)') +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-ggsave("figs/swiss_aoi_data_ms.png",dpi=300, dev='png',  height=8, width=12,units="in")
-```
-
 
 Lets do complete study Area

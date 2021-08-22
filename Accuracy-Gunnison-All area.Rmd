@@ -17,18 +17,23 @@ knitr::opts_chunk$set(echo = TRUE)
 library(ClusterR)
 library(rasterVis)
 library(RColorBrewer)
-
-start_time <- Sys.time()
-  beginCluster()
+library(sf)
+library(tidyverse)
   
+```
+```{r}
+#library(terra)
+library(raster)
 ```
 
 
 
 ```{r}
-#library(terra)
-library(raster)
+start_time <- Sys.time()
+  beginCluster()
 ```
+
+
 
 ## Stack the layers
 
@@ -501,55 +506,6 @@ Do the complete plot
 gunniasoandpred <- raster::stack('data/asopluspredclippedplanet.tiff')
 ```
 
-```{r, echo=FALSE}
-# Vector of correspondence
-cols.nb <- c("0" = "blue", "1" = "red")
-library(patchwork)
-plotga <- gplot(aso_co) + 
-  geom_tile(aes(fill = as.character(value)) ) +
-   coord_sf(crs = 4326)+
-  scale_fill_manual(values = cols.nb,
-                    breaks = 0:1,
-                    labels = c("No snow", "Snow"),
-                    name = "") +
-theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
-      axis.text.x = element_text(angle = 45, hjust = 1)) +
-ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
-    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
-       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
-  labs(x='',  y='') 
-
-
-plotgb <- gplot(pred_co) + 
-  geom_tile(aes(fill = as.character(value)) ) +
-   coord_sf(crs = 4326)+
-  scale_fill_manual(values = cols.nb,
-                    breaks = 0:1,
-                    labels = c("No snow", "Snow"),
-                    name = "") +
-  #theme_bw()+
-theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none",
-      axis.text.x = element_text(angle = 45, hjust = 1)) +
-ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
-    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
-       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
-  labs(x='',  y='') 
-
-# Area calc
-
-#raster::area(projectRaster(aoi_SWiss[[1]], crs = "+init=epsg:32631"))
-# All area 733.5
-# class      : RasterLayer 
-#dimensions : 461, 662, 305182  (nrow, ncol, ncell)
-#resolution : 22.5, 32.6  (x, y)
-#extent     : 1029602, 1044497, 5178034, 5193063  (xmin, xmax, ymin, ymax)
-#crs        : +proj=utm +zone=31 +datum=WGS84 +units=m +no_defs 
-#source     : memory
-#names      : layer 
-#values     : 733.5, 733.5  (min, max)
-#This is in Km2
-
-```
 
 ```{r , echo=FALSE}
 # Area calc
@@ -572,46 +528,125 @@ raster::area(projectRaster(gunniasoandpred[[2]], crs = "+init=epsg:32631"))
 
 ```{r , echo=FALSE}
 library('ceramic')
+aoi_study_area <- raster::stack('data/newstudy-co-large.tif')
+
+whole_area_co <- raster('./data/dem_stackedco_demandfriendsnormalized_asov3.tiff')
 
 data("wrld_simpl", package = "maptools")
 #im <- cc_location(cbind( -107.1661, 38.81874 ), buffer = 1e5, ype = "mapbox.satellite")
 
-im_gunni_site <- cc_location(extent(gunniasoandpred[[2]]), buffer = 1e5, ype = "mapbox.satellite")
+im_gunni_site <- cc_location(extent(aso_co), buffer = 1e5, ype = "mapbox.satellite")
 #im <- cc_location(p, ype = "mapbox.terrain-rgb")
 
-#raster::writeRaster(im_gunni_site,'data/Gunni-aoi.tiff',overwrite=TRUE)
+#raster::writeRaster(im_gunni_site,'data/Gunni-whole.tiff',overwrite=TRUE)
 #raster::writeRaster(im_swiss_site,'data/swiss-_aoi.tiff',overwrite=TRUE)
+
+# then do
+# gdalwarp  -t_srs EPSG:4326 Gunni-whole.tif Gunni-whole_wgs84.tif
+
 #> Preparing to download: 12 tiles at zoom = 6 from 
 #> https://api.mapbox.com/v4/mapbox.light/
 raster::plotRGB(im_gunni_site)
+#writeRaster(raster(im_gunni_site),filename = './data/whole_area_gunnison_tiff',overwrite=TRUE)
 ```
 
 
 
 ```{r , echo=FALSE}
-gunni_aoi <- extent(aoi_gunni_stacked)
 
-poly_study_gunni <- as(gunni_aoi,'SpatialPolygons')
+aoi_large_gunni <-raster::stack('data/newstudy-gunni-large_aoi_wgs84.tif')
 
-poly_study_gunni <- fortify(poly_study_gunni)
+
+
+#poly_study_gunni <- as(aoi_large_gunni,'SpatialPolygons')
+
+#poly_study_gunni <- fortify(poly_study_gunni)
+
+
+aoi_gunni_co <- extent(aoi_large_gunni)
+poly_aoi_gunni_co<- as(aoi_gunni_co,'SpatialPolygons')
+
+p_study_gunni <- fortify(poly_aoi_gunni_co)
+
 ```
 
 ```{r , echo=FALSE}
-aoi_Gunni <- raster::stack('./data/Gunni-aoi_wgs84.tif')
+#aoi_Gunni <- raster::stack('./data/Gunni-aoi_wgs84.tif')
 
+whole_area_co <- raster::stack('./data/Gunni-whole_wgs84.tif')
 
-plotgc <- RStoolbox::ggRGB(aoi_Gunni)+
+plotgc <- RStoolbox::ggRGB(whole_area_co)+
     coord_sf(crs = 4326)+
 theme(panel.background = element_rect(colour = "black", fill="white"),
       axis.text.x = element_text(angle = 45, hjust = 1)) +
-ggspatial::annotation_scale(location = "bl", width_hint = 0.5) +
-    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
-       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
-  geom_polygon(aes(long,lat), alpha = 0.2, color='green',data = poly_study_gunni) +
-# coord_equal() +
+#ggspatial::annotation_scale(  pad_x = unit(0.5, "mm"),pad_y = unit(0.5, "mm"),location = "bl", width_hint = 0.5) +
+#   ggspatial::annotation_north_arrow(location = "tr", which_north = "true", 
+#       pad_x = unit(0.5, "mm"),pad_y = unit(0.5, "mm"),style = #ggspatial::north_arrow_fancy_orienteering) +
+ geom_polygon(aes(long,lat), alpha = 0.2, color='green',data = p_study_gunni) +
+#coord_equal() +
   labs(x='',  y='') 
 
 ```
+
+```{r, echo=FALSE}
+# Vector of correspondence
+cols.nb <- c("0" = "blue", "1" = "red")
+library(patchwork)
+plotga <- gplot(aso_co) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+ggspatial::annotation_scale(location = "br", width_hint = 0.2) +
+    ggspatial::annotation_north_arrow(location = "tr", which_north = "true", 
+       #pad_y = unit(0.2, "mm"),
+       style = ggspatial::north_arrow_fancy_orienteering,
+       height = unit(0.8, "cm"),
+  width = unit(0.5, "cm")) +
+    geom_polygon(aes(long,lat), alpha = 0.2, color='green',data = p_study_gunni) +
+  theme(legend.position = "none") +
+   theme(axis.text.y=element_blank()) +
+  labs(x='',  y='') 
+
+
+plotgb <- gplot(pred_co) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+  #theme_bw()+
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+#ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
+#    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+#       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+    geom_polygon(aes(long,lat), alpha = 0.2, color='green',data = p_study_gunni) +
+  theme(legend.position = "none") +
+     theme(axis.text.y=element_blank()) +
+  labs(x='',  y='') 
+
+# Area calc
+
+#raster::area(projectRaster(aoi_SWiss[[1]], crs = "+init=epsg:32631"))
+# All area 733.5
+# class      : RasterLayer 
+#dimensions : 461, 662, 305182  (nrow, ncol, ncell)
+#resolution : 22.5, 32.6  (x, y)
+#extent     : 1029602, 1044497, 5178034, 5193063  (xmin, xmax, ymin, ymax)
+#crs        : +proj=utm +zone=31 +datum=WGS84 +units=m +no_defs 
+#source     : memory
+#names      : layer 
+#values     : 733.5, 733.5  (min, max)
+#This is in Km2
+
+```
+
 
 Area of the study
 ```{r , echo=FALSE}
@@ -626,4 +661,12 @@ ABC
   caption = 'Mapbox (C)') +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ggsave("figs/gunnison_all_ms.png",dpi=300, dev='png',  height=6, width=10,units="in")
+```
+
+
+```{r , echo=FALSE}
+endCluster()
+end_time <- Sys.time()
+end_time - start_time
+
 ```

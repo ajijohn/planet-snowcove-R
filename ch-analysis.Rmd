@@ -36,12 +36,15 @@ prediction_SWiss <- raster('./data/pred_merged_UTM_3m_s1_nodata_ch_r1.tif')
 
 ```{r, echo=FALSE}
 prediction_SWiss <- raster('./data/pred_merged_wgs84_3m_s1_nodata_ch_r1.tif')
+prediction_SWiss_removeNA <- raster('./data/pred_merged_wgs84_3m_s1_nodata_ch_r1.tif',na.rm = TRUE)
+
 ```
 
 ```{r, echo=FALSE}
 aso_SWiss <- raster('./data/EUCHDB20170517_SUPERsnow_depth_3m_binary_wgs84_3m.tif')
 
 cropped_aso_swiss <- crop(aso_SWiss, extent(prediction_SWiss))
+
 
 ```
 
@@ -63,55 +66,6 @@ gplot(prediction_SWiss) +
 theme(panel.background = element_rect(colour = "black", fill="lightblue")) 
 ```
 
-```{r, echo=FALSE}
-# Vector of correspondence
-cols.nb <- c("0" = "blue", "1" = "red")
-library(patchwork)
-plotma <- gplot(prediction_SWiss) + 
-  geom_tile(aes(fill = as.character(value)) ) +
-   coord_sf(crs = 4326)+
-  scale_fill_manual(values = cols.nb,
-                    breaks = 0:1,
-                    labels = c("No snow", "Snow"),
-                    name = "") +
-theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
-      axis.text.x = element_text(angle = 45, hjust = 1)) +
-ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
-    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
-       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
-  labs(x='',  y='') 
-
-
-plotmb <- gplot(cropped_aso_swiss) + 
-  geom_tile(aes(fill = as.character(value)) ) +
-   coord_sf(crs = 4326)+
-  scale_fill_manual(values = cols.nb,
-                    breaks = 0:1,
-                    labels = c("No snow", "Snow"),
-                    name = "") +
-  #theme_bw()+
-theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none",
-      axis.text.x = element_text(angle = 45, hjust = 1)) +
-ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
-    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
-       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
-  labs(x='',  y='') 
-
-# Area calc
-
-#raster::area(projectRaster(aoi_SWiss[[1]], crs = "+init=epsg:32631"))
-# All area 733.5
-# class      : RasterLayer 
-#dimensions : 461, 662, 305182  (nrow, ncol, ncell)
-#resolution : 22.5, 32.6  (x, y)
-#extent     : 1029602, 1044497, 5178034, 5193063  (xmin, xmax, ymin, ymax)
-#crs        : +proj=utm +zone=31 +datum=WGS84 +units=m +no_defs 
-#source     : memory
-#names      : layer 
-#values     : 733.5, 733.5  (min, max)
-#This is in Km2
-
-```
 
 733.5
 
@@ -149,14 +103,72 @@ plotmc <- RStoolbox::ggRGB(aoi_SWiss)+
     coord_sf(crs = 4326)+
 theme(panel.background = element_rect(colour = "black", fill="white"),
       axis.text.x = element_text(angle = 45, hjust = 1)) +
-ggspatial::annotation_scale(location = "bl", width_hint = 0.5) +
-    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
-       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+#ggspatial::annotation_scale(  pad_x = unit(0.5, "mm"),pad_y = unit(0.5, "mm"),location = "bl", width_hint = 0.5) +
+#   ggspatial::annotation_north_arrow(location = "tr", which_north = "true", 
+#       pad_x = unit(0.5, "mm"),pad_y = unit(0.5, "mm"),style = #ggspatial::north_arrow_fancy_orienteering) +
   geom_polygon(aes(long,lat), alpha = 0.2, color='green',data = poly_study) +
-# coord_equal() +
+#coord_equal() +
   labs(x='',  y='') 
 
 ```
+
+```{r, echo=FALSE}
+# Vector of correspondence
+cols.nb <- c("0" = "blue", "1" = "red")
+library(patchwork)
+plotma <- gplot(prediction_SWiss) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+ggspatial::annotation_scale(location = "br", width_hint = 0.2) +
+    ggspatial::annotation_north_arrow(location = "tr", which_north = "true", 
+       #pad_y = unit(0.2, "mm"),
+       style = ggspatial::north_arrow_fancy_orienteering,
+       height = unit(0.8, "cm"),
+  width = unit(0.5, "cm")) +
+  geom_polygon(aes(long,lat), alpha = 0.2, color='green',data = poly_study) +
+     theme(axis.text.y=element_blank()) +
+  labs(x='',  y='') 
+
+
+plotmb <- gplot(cropped_aso_swiss) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+  #theme_bw()+
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+#ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
+#    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+#       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  geom_polygon(aes(long,lat), alpha = 0.2, color='green',data = poly_study) +
+     theme(axis.text.y=element_blank()) +
+  labs(x='',  y='') 
+
+# Area calc
+
+#raster::area(projectRaster(aoi_SWiss[[1]], crs = "+init=epsg:32631"))
+# All area 733.5
+# class      : RasterLayer 
+#dimensions : 461, 662, 305182  (nrow, ncol, ncell)
+#resolution : 22.5, 32.6  (x, y)
+#extent     : 1029602, 1044497, 5178034, 5193063  (xmin, xmax, ymin, ymax)
+#crs        : +proj=utm +zone=31 +datum=WGS84 +units=m +no_defs 
+#source     : memory
+#names      : layer 
+#values     : 733.5, 733.5  (min, max)
+#This is in Km2
+
+```
+
 
 Area of the study
 ```{r , echo=FALSE}
