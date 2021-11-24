@@ -1,0 +1,355 @@
+---
+title: "R Notebook Gunnison Results"
+output: html_notebook
+---
+
+## R Markdown
+
+Read the layer
+```{r}
+library(raster)
+
+aoi_gunni_pred <- raster('data/pred_merged_CO_3m_s1_nodata_wgs84.tif')
+aoi_gunni_aso<- raster('data/aso_merged_CO_3m_s1_nodata_wgs84.tif')
+
+aoi_gunni_stacked <- raster::stack(aoi_gunni_aso,aoi_gunni_pred)
+```
+
+get the area
+
+```{r , echo=FALSE}
+library('ceramic')
+aoi_gunni_study <- extent(aoi_gunni_stacked)
+p_gunni <- aoi_gunni_study
+data("wrld_simpl", package = "maptools")
+#im <- cc_location(cbind( -107.1661, 38.81874 ), buffer = 1e5, ype = "mapbox.satellite")
+
+im_gunni_aoi <- cc_location(p_gunni, buffer = 1e5, ype = "mapbox.satellite")
+#im <- cc_location(p, ype = "mapbox.terrain-rgb")
+
+raster::writeRaster(im_gunni_aoi,'data/newstudy-gunni-large_aoi.tiff',overwrite=TRUE)
+
+#> Preparing to download: 12 tiles at zoom = 6 from 
+#> https://api.mapbox.com/v4/mapbox.light/
+raster::plotRGB(im_gunni_aoi)
+```
+
+Load aoi and plot
+```{r}
+
+aoi_large_gunni <-raster::stack('data/newstudy-gunni-large_aoi_wgs84.tif')
+plotRGB(aoi_large_gunni)
+```
+Area of the snipped region
+```{r}
+
+raster::area(projectRaster(aoi_large_gunni[[1]], crs = "+init=epsg:32631"))
+```
+
+
+class      : RasterLayer 
+dimensions : 615, 696, 428040  (nrow, ncol, ncell)
+resolution : 2.67, 3.87  (x, y)
+extent     : 1038000, 1039858, 5180628, 5183008  (xmin, xmax, ymin, ymax)
+crs        : +proj=utm +zone=31 +datum=WGS84 +units=m +no_defs 
+source     : memory
+names      : layer 
+values     : 10.3329, 10.3329  (min, max)
+
+
+```{r}
+combined_CH_Raster_lage_SWiss <-raster::stack('data/newstudy-swiss-large.tif')
+```
+
+CHM
+```{r}
+plot(combined_CH_Raster_lage_SWiss[[3]])
+```
+
+
+Read the DCE
+```{r}
+combined_Gunnison_Raster_lage_Gunni_dce <-raster::stack('data/newstudywithdce-co-large.tif')[[3]]
+plot(combined_Gunnison_Raster_lage_Gunni_dce)
+```
+With canopy density
+```{r}
+combined_Gunnison_Raster_lage_Gunni_cd <-raster::stack('data/newstudywithcd-co-large.tif')[[3]]
+plot(combined_Gunnison_Raster_lage_Gunni_cd)
+```
+
+created open and forested area map
+
+```{r}
+moafa <- c(-10, 1, 0,  1, 100, 1)
+rclmatoafa <- matrix(moafa, ncol=1, byrow=TRUE)
+r_chmoafa <- reclassify(combined_CH_Raster_lage_SWiss[[3]], rclmatoafa)
+
+
+plot(r_chmoafa)
+```
+
+```{r setup, include=FALSE}
+library(ForestGapR)
+library(fieldRS)
+library(viridis)
+library(rasterVis)
+library(tidyverse)
+```
+
+create the plots
+
+```{r , echo=FALSE}
+aoi_co_readin <- raster::stack('data/newstudy-co-large.tif')
+```
+
+
+```{r}
+cols.nb <- c("0" = "blue", "1" = "red")
+plotgunnib2 <- gplot(aoi_co_readin[[2]]) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none",
+       axis.text.x = element_text(angle = 45, hjust = 1)) +
+ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='') 
+
+
+plotgunnib1 <- gplot(aoi_co_readin[[1]]) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+  #theme_bw()+
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none",
+       axis.text.x = element_text(angle = 45, hjust = 1)) +
+ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='') 
+
+ 
+plota1 <-  RStoolbox::ggRGB(im)+
+theme(panel.background = element_rect(colour = "black", fill="white")) +
+ggspatial::annotation_scale(location = "bl", width_hint = 0.5) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='') 
+```
+
+
+get Plabet imagery
+
+Users/ajijohn/git/planet-snowcove-R/data/20180524_172634_0f2d_3B_AnalyticMS_SR.tif
+Users/ajijohn/git/planet-snowcove-R/data/20180524_172635_0f2d_3B_AnalyticMS_SR.tif
+
+```{r, echo=FALSE}
+
+planet_img_gunni_aoi_merged <-
+  raster::merge(raster::stack('data/20180524_172634_0f2d_3B_AnalyticMS_SR.tif'),
+       raster::stack('data/20180524_172635_0f2d_3B_AnalyticMS_SR.tif')  ,  tolerance=1,  overlap=TRUE    )
+
+#writeRaster(planet_img_gunni_aoi_merged,'data/gunni_study_planet_utm.tiff',overwrite=TRUE)
+
+planet_img_gunni_aoi_stack <-raster::stack('data/gunni_study_planet_wgs84.tif')
+planet_img_gunni_aoi_stack <-crop(planet_img_gunni_aoi_stack,extent(aoi_co_readin[[1]]))
+#planet_img_swiss_stack <- planet_img_swiss_stack/10000
+plotgunnic3 <-  RStoolbox::ggRGB(planet_img_gunni_aoi_stack)+
+theme(panel.background = element_rect(colour = "black", fill="white")) +
+  labs(x='',  y='') 
+```
+
+
+```{r, echo=FALSE}
+#planet_gunni_crop <- crop(planet_img_gunni_aoi_stack,p_gunni)
+plotgunnib3 <-  RStoolbox::ggRGB(planet_img_gunni_aoi_stack)+
+   coord_sf(crs = 4326)+
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+       axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x='',  y='') 
+```
+
+
+
+```{r , echo=FALSE}
+
+
+
+cols.dc <- c("1" = "red", "2" = "blue", "3" = "green")
+rc_density_gunni_ms<- reclassify(combined_Gunnison_Raster_lage_Gunni_cd, c(-Inf,0.5,1,0.5,0.75,2, 0.75,1,3))
+
+plotgunnia1<- gplot(rc_density_gunni_ms) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.dc,
+                    breaks = c(1,2,3),
+                    labels = c("Sparse", "Medium","Dense"),
+                    name = "") +
+  #theme_bw()+
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+       axis.text.x = element_text(angle = 45, hjust = 1)) +
+ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='',fill="Vegetation:",color="Vegetation:") 
+
+ # 10m by 10m 
+rc_density_gunni_ms_r3by3 <- focal(rc_density_gunni_ms, w=matrix(1,3,3), fun=mean)
+# 30m by 30m
+rc_density_gunni_ms_r30by30 <- focal(rc_density_gunni_ms, w=matrix(1,29,29), fun=mean)
+
+rc_density_gunni_ms_r500by500 <- focal(rc_density_gunni_ms, w=matrix(1,145,145), fun=mean)
+rc_density_gunni_ms_r500<- reclassify(rc_density_gunni_ms_r500by500, c(1,1,1,1,2,2,2,3,3))
+
+rc_density_gunni_ms_r1<- reclassify(rc_density_gunni_ms_r30by30, c(1,1,1,1,2,2,2,3,3))
+
+plotgunnia1_r1<- gplot(rc_density_gunni_ms_r1) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.dc,
+                    breaks = c(1,2,3),
+                    labels = c("Sparse", "Medium","Dense"),
+                    name = "") +
+  #theme_bw()+
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+       axis.text.x = element_text(angle = 45, hjust = 1)) +
+ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='',fill="Vegetation:",color="Vegetation:") 
+
+
+
+cols.chm <- c("1" = "red", "2" = "green")
+#old
+#rc_dce <- reclassify(df_dce[[3]], c(-Inf,0,1,0,30,2, 30,Inf,3))
+#new
+rc_chm_gunni_ms<- reclassify(aoi_co_readin[[3]], c(-Inf,1,1,1,Inf,2))
+
+plotgunnia2<- gplot(rc_chm_gunni_ms) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.chm,
+                    breaks = c(1,2),
+                    labels = c("Open", "Forested"),
+                    name = "") +
+  #theme_bw()+
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+       axis.text.x = element_text(angle = 45, hjust = 1)) +
+ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='',fill="Vegetation:",color="Vegetation:") 
+
+
+cols.dce <- c("1" = "green", "2" = "blue", "3" = "red")
+#old
+#rc_dce <- reclassify(df_dce[[3]], c(-Inf,0,1,0,30,2, 30,Inf,3))
+#new
+rc_dce_gunni_ms <- reclassify(combined_Gunnison_Raster_lage_Gunni_dce, c(-Inf,0,1,0,30,2, 30,Inf,3))
+
+plotgunnia3<- gplot(rc_dce_gunni_ms) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.dce,
+                    breaks = c(1,2,3),
+                    labels = c("Dense", "Medium","Sparse"),
+                    name = "") +
+  #theme_bw()+
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='',fill="Vegetation:",color="Vegetation:") 
+
+```
+
+Prepare C - Area, chm and dem
+
+```{r, echo=FALSE}
+asodem_img_gunni_stack <-raster::stack('data/gunnison_dem3m_wgs84.tif')
+#planet_img_swiss_stack <- planet_img_swiss_stack/10000
+
+```
+
+```{r, echo=FALSE}
+aso_co_dem_crop <- crop(asodem_img_gunni_stack,extent(aoi_co_readin[[3]]))
+plotgunnic3 <-  gplot(aso_co_dem_crop)+
+   coord_sf(crs = 4326)+
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x='',  y='', fill="DEM (m)") 
+```
+
+```{r , echo=FALSE}
+
+areagunniplot <- crop(aoi_large_gunni,extent(aoi_co_readin[[3]]))
+     
+plotgunnic1 <- RStoolbox::ggRGB(areagunniplot)+
+    coord_sf(crs = 4326)+
+theme(panel.background = element_rect(colour = "black", fill="white"),axis.text.x = element_text(angle = 45, hjust = 1)) +
+ggspatial::annotation_scale(location = "bl", width_hint = 0.5) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='') 
+
+plotgunnic2 <- gplot(aoi_co_readin[[3]]) +
+    coord_sf(crs = 4326)+
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x='',  y='', fill="Canopy height (m)") 
+  
+```
+
+
+
+```{r , echo=FALSE}
+library(patchwork)
+layout <- "
+ABC
+DEF
+GHI
+"
+ plotgunnib1 + plotgunnib2 + plotgunnib3  +
+  plotgunnia1+plotgunnia2+plotgunnia3+
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = 'A', title = '',
+  subtitle = '',
+  caption = 'Planet (C)') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggsave("figs/gunni_aoi_ms.png",dpi=300, dev='png',  height=10, width=12,units="in")
+```
+
+```{r , echo=FALSE}
+library(patchwork)
+layout <- "
+ABC
+DEF
+GHI
+"
+ plotgunnib1 + plotgunnib2 + plotgunnib3  +
+  plotgunnia1_r1+plotgunnia2+plotgunnia3+
+   plotgunnic1 + plotgunnic2+plotgunnic3+
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = 'A', title = '',
+  subtitle = '',
+  caption = 'Planet (C)') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggsave("figs/gunni_aoi_ms_revised.png",dpi=300, dev='png',  height=8, width=12,units="in")
+```
+
+
+Lets do complete study Area

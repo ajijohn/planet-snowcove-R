@@ -1,0 +1,51 @@
+---
+title: "create-rasterized-dem-layers"
+author: "Aji John"
+date: "10/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+library(terra)
+```
+
+## load dem
+
+You can also embed plots, for example:
+
+```{r , echo=FALSE}
+data_dem <- terra::rast('./data/CA_snowfree_Base_20140101_dtmvf_mos_v3_CrkFr_basinSJ_vf_wgs84.tif')
+
+# Plot 2D DEM with contour lines
+plot(data_dem, col = terrain.colors(20))
+#plot(contour_plot, add = T)
+
+```
+
+calc slope etc
+
+```{r , echo=FALSE}
+# Obtain DEM derived maps
+derived_vars <- terra::terrain(data_dem, v = c('slope', 'roughness', 'aspect'), unit = "degrees")
+slope <- derived_vars[["slope"]]
+roughness <- derived_vars[["roughness"]]
+northness <- cos(derived_vars[["aspect"]] * pi / 180)
+eastness <- sin(derived_vars[["aspect"]] * pi / 180)
+# Plot maps
+par(mfrow = c(2, 2))
+plot(slope, col = heat.colors(20), main = "slope", axes = F)
+plot(roughness, col = heat.colors(20), main = "roughness", axes = F)
+plot(northness, col = heat.colors(20), main = "northness", axes = F)
+plot(eastness, col = heat.colors(20), main = "eastness", axes = F)
+```
+

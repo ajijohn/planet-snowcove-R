@@ -1,0 +1,262 @@
+---
+title: "SE Bars Notebook - CO with BASE and Slope aspect northness"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+
+```{r , echo=FALSE}
+aso_colorado <- raster('data/ASO_3M_SD_USCOGE_20180524_binary_wgs84.tif')
+
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+## plot the raster parallel
+```{r , echo=FALSE}
+#library(rgdal)
+library(ClusterR)
+library(rasterVis)
+library(RColorBrewer)
+
+start_time <- Sys.time()
+  beginCluster()
+  
+```
+
+```{r , echo=FALSE}
+#first import all files in a single folder as a list 
+rastlist <- list.files(path = "data/SLASNORNORMBASEREDOCO/", pattern='.tif', all.files=TRUE, full.names=TRUE)
+library(caret)
+i=0
+plo <- data.frame()
+skip_to_next <- FALSE
+ 
+for (file in  rastlist)
+{
+  print (file)
+  fileinprocess <- raster(file)
+  skip_to_next <- FALSE
+ 
+   aso_byscene <- crop(aso_colorado, extent(fileinprocess))
+   aso_byscene <-  projectRaster(aso_byscene,fileinprocess,method="ngb")
+  bysceneasoclip <- stack(aso_byscene,fileinprocess)
+  data_matrix_byscene<- as.data.frame(rasterToPoints(bysceneasoclip))
+  colnames(data_matrix_byscene) <- c('longitude','latitude','aso','pred')
+  data_matrix_byscene_filtered <- data_matrix_byscene[complete.cases(data_matrix_byscene),]
+ tryCatch(
+  cf <- confusionMatrix(as.factor(data_matrix_byscene_filtered$aso),as.factor(data_matrix_byscene_filtered$pred),mode = 'prec_recall') ,
+ error = function(e) { skip_to_next <<- TRUE})
+  
+  if(skip_to_next) { next }  
+  
+  print(cf)
+  if (i==0)
+  {
+    plo <- as.data.frame( t(cf$byClass))
+    #plo$file <- file
+    i <- 1
+  }
+  else
+  {
+    plo <- rbind(plo,t(cf$byClass))
+  }
+}
+
+head(plo)
+```
+
+Add file names
+
+```{r }
+library(tidyverse)
+plo$Accuracy <- (plo$Sensitivity * plo$Prevalence) + ( (plo$Specificity) * (1-plo$Prevalence))
+
+plo$filename <- rastlist
+
+plot_longer_df <- plo %>% pivot_longer(!filename) %>% as.data.frame()
+```
+
+```{r }
+library(ggplot2)
+
+df_gunni <- plot_longer_df %>% 
+   group_by(name) %>%
+          dplyr::summarise(avg_metric = mean(value),
+                                        se = sd(value)/sqrt(length(value))) %>%
+  dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy","Accuracy")) %>%
+  as.data.frame()
+
+write_csv(df_gunni,file='./data/SLASNORNORMBASEREDOCO/processed-data.csv')
+
+# Default bar plot
+p<- plot_longer_df %>% 
+   group_by(name) %>%
+          dplyr::summarise(avg_metric = mean(value),
+                                        se = sd(value)/sqrt(length(value))) %>%
+  dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy",  "Accuracy")) %>%
+ggplot(aes(x=name, y=avg_metric)) + 
+  geom_bar(stat="identity",color="black" , 
+           position=position_dodge()) +
+  geom_errorbar(aes(ymin=avg_metric-se, ymax=avg_metric+se), width=.2,
+                 position=position_dodge(.9),color="#7FC97F") +
+  theme_minimal(base_size = 18)+
+  ggpubr::theme_cleveland() +
+  labs(x="",y="Value")
+plot_gunni <- p
+
+print(p)
+ggsave("figs/all_scenes_gunnison_cobasenslopeaspectnorthness.png",dpi=300, dev='png',  height=8, width=10,units="in")
+# Finished bar plot
+#p+labs(title="Tooth length per dose", x="Dose (mg)", y = "Length")+
+#   theme_classic() +
+#   scale_fill_manual(values=c('#999999','#E69F00'))
+
+```
+
+  Specific scene - 20180524_172637_0f2d
+ 
+```{r }
+library(ggplot2)
+# Default bar plot
+p_specific<- plot_longer_df %>% 
+    dplyr::filter(str_detect(filename,"20180524_172637_0f2d")) %>%
+   group_by(name) %>%
+          dplyr::summarise(avg_metric = mean(value),
+                                        se = sd(value)/sqrt(length(value))) %>%
+  dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy",  "Accuracy")) %>%
+
+ggplot(aes(x=name, y=avg_metric)) + 
+  geom_bar(stat="identity", color="black", 
+           position=position_dodge()) +
+  geom_errorbar(aes(ymin=avg_metric-se, ymax=avg_metric+se), width=.2,
+                 position=position_dodge(.9),color="#7FC97F") +
+  theme_minimal(base_size = 18)+
+  ggpubr::theme_cleveland() +
+  labs(x="Metric",y="Value")
+print(p_specific)
+# Finished bar plot
+#p+labs(title="Tooth length per dose", x="Dose (mg)", y = "Length")+
+#   theme_classic() +
+#   scale_fill_manual(values=c('#999999','#E69F00'))
+ggsave("figs/all_scenes_gunnison_specific-basewithslopeaspectnorth.png",dpi=300, dev='png',  height=8, width=10,units="in")
+```
+
+plot the studied area
+
+```{r }
+ostudyarea <- raster('data/SLASNORNORMBASEREDOCO/20180524_172637_0f2d_3B_AnalyticMS_SR_clip_merged.tif')
+cols.nb <- c("0" = "blue", "1" = "red")
+   aso_byscene_study <- crop(aso_colorado, extent(ostudyarea))
+   aso_byscene_study <-  projectRaster(aso_byscene_study,ostudyarea,method="ngb")
+   
+   plotgunnib2_ostudy <- gplot(ostudyarea) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none",
+       axis.text.x = element_text(angle = 45, hjust = 1)) +
+ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='') 
+
+
+plotgunnib1_ostudy  <- gplot(aso_byscene_study) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+  #theme_bw()+
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none",
+       axis.text.x = element_text(angle = 45, hjust = 1)) +
+ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
+    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
+       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='') 
+   
+```
+
+Canopy and not canopy plot
+```{r , echo=FALSE}
+
+ostudyarea <- raster('data/SLASNORNORMBASEREDOCO/20180524_172637_0f2d_3B_AnalyticMS_SR_clip_merged.tif')
+chmco <- raster('data/Gunnison__chm_2point1by1point6.tif')
+
+   aso_byscene <- crop(aso_colorado, extent(ostudyarea))
+   chm_bystudyarea <- crop(chmco, extent(ostudyarea))
+   
+   aso_byscene <-  projectRaster(aso_byscene,ostudyarea,method="ngb")
+   
+    chm_byscene <-  projectRaster(chm_bystudyarea,ostudyarea,method="ngb")
+    
+  bysceneasoclip_costudyarea <- stack(aso_byscene,ostudyarea,chm_byscene)
+  data_matrix_byscene_chm<- as.data.frame(rasterToPoints(bysceneasoclip_costudyarea))
+  colnames(data_matrix_byscene_chm) <- c('longitude','latitude','aso','pred','canopyheight')
+  ddata_matrix_byscene_chm_filtered <- data_matrix_byscene_chm[complete.cases(data_matrix_byscene_chm),]
+  cf_chm <- confusionMatrix(as.factor(ddata_matrix_byscene_chm_filtered$aso),as.factor(ddata_matrix_byscene_chm_filtered$pred),mode = 'prec_recall')
+  cf_chm
+  
+  ddata_matrix_byscene_chm_filtered_chm_area <- ddata_matrix_byscene_chm_filtered %>% filter(canopyheight > 1) %>% as.data.frame()
+    ddata_matrix_byscene_chm_filtered_nonchm_area <- ddata_matrix_byscene_chm_filtered %>% filter(canopyheight <= 1) %>% as.data.frame()
+
+cm_scenecanopy <- confusionMatrix(as.factor(ddata_matrix_byscene_chm_filtered_chm_area$aso),as.factor(ddata_matrix_byscene_chm_filtered_chm_area$pred),mode = 'prec_recall')
+cm_scenenocanopy <- confusionMatrix(as.factor(ddata_matrix_byscene_chm_filtered_nonchm_area$aso),as.factor(ddata_matrix_byscene_chm_filtered_nonchm_area$pred),mode = 'prec_recall')
+
+```
+
+```{r , echo=FALSE}
+plo_focussed_scene <- as.data.frame( t(cm_scenecanopy$byClass))
+plo_focussed_scene <- rbind(plo_focussed_scene,t(cm_scenenocanopy$byClass))
+
+plo_focussed_scene$type <- c('FA','OA')
+
+plo_focussed_scene_df <- plo_focussed_scene %>% pivot_longer(!type) %>% as.data.frame()
+
+plo_focussed_scene_df %>% 
+  mutate(value = round(value,2)) %>% 
+    dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy")) %>%
+  ggplot() + geom_bar(aes(name,value,fill = type), position = "dodge",stat="identity", width=.5) +
+   geom_text(aes(name,value,label=value, group=type), position=position_dodge(width=0.5), vjust=-0.3) +
+ labs(x="" , y="",subtitle="",fill="") + theme_minimal(base_size = 18)+
+  ggpubr::theme_pubclean()
+ggsave(filename = "figs/scenepreditCO_both_rev_BASEslopeaspectnorthness.png",dpi = 300,height=4,width=8,units="in")
+
+
+```  
+
+Area of the study  (Original)
+```{r , echo=FALSE}
+library(patchwork)
+layout <- "
+AB
+"
+ plotgunnib1_ostudy + plotgunnib2_ostudy + 
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = 'A', title = '',
+  subtitle = '',
+  caption = 'Mapbox (C)') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggsave("figs/co_aoi_original_ms-BASEslopeaspectnorthness.png",dpi=300, dev='png',  height=8, width=12,units="in")
+```
+
+
+```{r , echo=FALSE}
+endCluster()
+end_time <- Sys.time()
+end_time - start_time
+
+```

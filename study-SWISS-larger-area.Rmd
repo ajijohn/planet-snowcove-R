@@ -1,0 +1,439 @@
+---
+title: "Ana-stuff-Swiss"
+author: "Aji John"
+date: "2/23/2021"
+output: html_document
+---
+
+Goal ois to larger metrics on the whole SWISS predictions
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+Read the layer
+```{r}
+library(raster)
+pred1 <- raster('./data/DEMplusCHPredictions/20170516_092514_1028_3B_AnalyticMS_SR_clip_merged.tif')
+pred2 <- raster('./data/DEMplusCHPredictions/20170516_092515_1028_3B_AnalyticMS_SR_clip_merged.tif')
+```
+
+```{r , echo=FALSE}
+#library(rgdal)
+
+start_time <- Sys.time()
+  beginCluster()
+  
+```
+## Mosaic the prediction
+
+Read the layer
+```{r}
+library(raster)
+pred2Repro <- raster::projectRaster(pred2,pred1)
+
+newlargerStudy <- raster::merge(pred1,pred2Repro)
+```
+
+You can also embed plots, for example:
+class      : Extent 
+xmin       : 578434.7 
+xmax       : 580026.2 
+ymin       : 5157167 
+ymax       : 5159338 
+
+
+```{r pressure, echo=FALSE}
+newExtent <- extent(pred1)
+
+library(sp)
+
+
+#e <- as(newExtent, "SpatialPolygons")
+#sp::proj4string(e) <- proj4string(planet_img_swiss)
+#e.geo <- sp::spTransform(e, CRS("+proj=longlat +datum=WGS84 +no_defs 
+#                             +ellps=WGS84 +towgs84=0,0,0"))
+  
+aoi <- extent(pred1)
+p <- aoi
+```
+
+```{r}
+library(rgdal)
+
+#darat_rg <- readGDAL('./data/study-area-predicted.tiff')
+#creates a hige file - Skipping
+#writeOGR(darat_rg, layer="band1","data/studyarea.geojson",driver="GeoJSON")
+
+```
+
+```{r}
+library(sp)
+enew <- as(raster::extent(pred1), "SpatialPolygons")
+proj4string(enew) <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+plot(enew)
+library(geojson)
+asgeojs <- as.geojson(enew)
+
+geo_pretty(asgeojs)
+
+```
+
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "id": 0,
+            "properties": {
+                "dummy": 0.0
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            10.0201,
+                            46.5818
+                        ],
+                        [
+                            10.0201,
+                            46.5887
+                        ],
+                        [
+                            10.03,
+                            46.5887
+                        ],
+                        [
+                            10.03,
+                            46.5818
+                        ],
+                        [
+                            10.0201,
+                            46.5818
+                        ]
+                    ]
+                ]
+            }
+        }
+    ]
+}
+ 
+
+
+=======
+
+
+#visualize
+```{r , echo=FALSE}
+library('ceramic')
+
+data("wrld_simpl", package = "maptools")
+#im <- cc_location(cbind( -107.1661, 38.81874 ), buffer = 1e5, ype = "mapbox.satellite")
+
+aoip<- cc_location(aoi, buffer = 1e5, ype = "mapbox.satellite")
+#im <- cc_location(p, ype = "mapbox.terrain-rgb")
+
+#> Preparing to download: 12 tiles at zoom = 6 from 
+#> https://api.mapbox.com/v4/mapbox.light/
+raster::plotRGB(aoip)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+Plot the area of interest (Bounding box)
+
+class      : Extent 
+xmin       : 10.02011 
+xmax       : 10.03 
+ymin       : 46.58182 
+ymax       : 46.58873 
+
+
+Using ceramic
+```{r , echo=FALSE}
+library('ceramic')
+
+data("wrld_simpl", package = "maptools")
+#im <- cc_location(cbind( -107.1661, 38.81874 ), buffer = 1e5, ype = "mapbox.satellite")
+
+im <- cc_location(p, buffer = 1e5, ype = "mapbox.satellite")
+#im <- cc_location(p, ype = "mapbox.terrain-rgb")
+
+#> Preparing to download: 12 tiles at zoom = 6 from 
+#> https://api.mapbox.com/v4/mapbox.light/
+raster::plotRGB(im)
+```
+
+
+
+
+# Clip the ASO
+
+```{r pressure, echo=FALSE}
+
+aso<- raster('data/EUCHDB20170517_SUPERsnow_depth_3m_binary_wgs84_3m.tif')
+#crs_latlong <-crs("+proj=longlat +datum=WGS84")
+
+#pred_ref_wgs84 <- projectRaster(pred,crs=crs_latlong)
+
+#pred <- raster('data/dem_stackedco_demandfriendsnormalized_predv3.tiff')
+aso_crop <- crop(aso,p)
+plot(aso_crop)
+```
+
+Clip the canopy
+
+```{r , echo=FALSE}
+
+chm<- raster('data/EUCHDB20170829f1a1_CHM_WGS84.tif')
+#crs_latlong <-crs("+proj=longlat +datum=WGS84")
+
+#chm_ref_wgs84 <- projectRaster(chm,crs=crs_latlong)
+
+#pred <- raster('data/dem_stackedco_demandfriendsnormalized_predv3.tiff')
+chm_crop <- crop(chm,p)
+plot(chm_crop)
+```
+
+
+```{r , echo=FALSE}
+
+aso_pred_rep <- projectRaster(aso_crop,pred1,method='ngb')
+chm_crop_rep <- projectRaster(chm_crop,pred1)
+extent(aso_pred_rep) <- extent(pred1)
+extent(chm_crop_rep) <- extent(pred1)
+df <- stack(aso_pred_rep,pred1,chm_crop_rep)
+
+raster::writeRaster(df,'data/newstudy-swiss-scene1.tiff',overwrite=TRUE)
+```
+
+
+
+```{r , echo=FALSE}
+
+data_matrix <- rasterToPoints(df)
+head(data_matrix)
+datafra_comb <- data_matrix %>% as.data.frame()
+
+colnames(datafra_comb) <- c('x','y','aso','pred','veg_height')
+```
+
+```{r , echo=FALSE}
+library(caret)
+datafra_comb1m <- datafra_comb %>% dplyr::filter(!is.na(veg_height) & veg_height > 1) %>% as.data.frame()
+
+high_veg <- datafra_comb1m %>% dplyr::filter(!is.na(veg_height)) %>% dplyr::filter(veg_height > 1 ) %>% as.data.frame()
+
+
+confusionMatrix(as.factor(high_veg$aso),as.factor(high_veg$pred),mode = 'prec_recall')
+
+```
+
+```{r , echo=FALSE}
+library(caret)
+
+low_veg <- datafra_comb %>%  dplyr::filter(veg_height <=1  ) %>% as.data.frame()
+
+confusionMatrix(as.factor(low_veg$aso),as.factor(low_veg$pred),mode = 'prec_recall')
+
+```
+
+
+
+
+
+
+```{r , echo=FALSE}
+lin <- function(x){x * 10 + 0.6}
+
+# TPI for different neighborhood size:
+tpiw <- function(x, w=5) {
+	m <- matrix(1/(w^2-1), nc=w, nr=w)
+	m[ceiling(0.5 * length(m))] <- 0
+	f <- focal(x, m)
+	x - f
+}
+
+cd <- function(x, w) {
+	m <- matrix(1, nc=w, nr=w)
+#	m[ceiling(0.5 * length(m))] <- 0
+	f <- focal(x, m, fun=sum)
+	f
+}
+
+```
+
+
+```{r , echo=FALSE}
+library(tidyverse)
+library(rasterVis)
+# 225m2
+#canden5by5wc <- cd(split_chm1, w=5)
+canden3by3wc <- cd(chm_crop, w=3)
+
+rcwc <- reclassify(canden3by3wc, c(0, 50, 100,150, 200, 250))
+
+gplot(rcwc) + 
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+
+#ggsave(filename = "figs/wc_densitymap.png",dpi = 300,height=4,width=8,units="in")
+```
+## Reclassify the canopy height layer
+
+```{r , echo=FALSE}
+
+m <- c(-10, 2, 0,  2, 100, 1)
+rclmat <- matrix(m, ncol=3, byrow=TRUE)
+r_chm <- reclassify(chm_crop, rclmat)
+
+cdensity <- function(x, w) {
+	m <- matrix(1, nc=w, nr=w)
+#	m[ceiling(0.5 * length(m))] <- 0
+	f <- focal(x, m, fun=mean)
+	f
+}
+
+# 225m2
+#canden5by5wc <- cd(split_chm1, w=5)
+c_density3by3wc <- cdensity(r_chm, w=3)
+
+
+gplot(c_density3by3wc) + 
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme_bw()
+
+ggsave(filename = "figs/densitymap-scene1.png",dpi = 300,height=4,width=8,units="in")
+```
+Add Density
+```{r , echo=FALSE}
+aso_crop_reprcd <- projectRaster(aso_crop,c_density3by3wc,method='ngb')
+pred_crop_reprcd <- projectRaster(pred1,c_density3by3wc,method='ngb')
+
+extent(aso_crop_reprcd)  <- extent(c_density3by3wc)
+df_cd <- stack(aso_crop_reprcd,pred_crop_reprcd,c_density3by3wc)
+
+raster::writeRaster(df_cd,'data/newstudywithcd-swiss-scene1.tiff',overwrite=TRUE)
+```
+
+```{r , echo=FALSE}
+
+data_matrix_cd <- rasterToPoints(df_cd)
+head(data_matrix_cd)
+datafra_comb_cd <- data_matrix_cd %>% as.data.frame()
+
+colnames(datafra_comb_cd) <- c('x','y','aso','pred','can_den')
+```
+
+```{r , echo=FALSE}
+library(caret)
+datafra_comb1m_cd <- datafra_comb_cd %>% dplyr::filter(!is.na(can_den) & can_den > .75) %>% as.data.frame()
+
+dense_veg <- datafra_comb1m_cd %>% dplyr::filter(!is.na(can_den)) %>% dplyr::filter(can_den > .75 ) %>% as.data.frame()
+dense_veg_df <- dense_veg %>% dplyr::mutate(pred_f = as.factor(pred),aso_f = as.factor(aso)) %>% as.data.frame()
+
+confusionMatrix(as.factor(dense_veg$aso),as.factor(dense_veg$pred),mode = 'prec_recall')
+
+```
+
+```{r , echo=FALSE}
+library(caret)
+datafra_comb1m_cd <- datafra_comb_cd %>% dplyr::filter(!is.na(can_den) & can_den > .5 & can_den < .75) %>% as.data.frame()
+
+dense_veg <- datafra_comb1m_cd %>% dplyr::filter(!is.na(can_den)) %>% dplyr::filter(  can_den > .5 & can_den < .75 ) %>% as.data.frame()
+
+
+confusionMatrix(as.factor(dense_veg$aso),as.factor(dense_veg$pred),mode = 'prec_recall')
+
+```
+
+```{r , echo=FALSE}
+library(caret)
+datafra_comb1m_cd <- datafra_comb_cd %>% dplyr::filter(!is.na(can_den) & can_den < .5) %>% as.data.frame()
+
+dense_veg <- datafra_comb1m_cd %>% dplyr::filter(!is.na(can_den)) %>% dplyr::filter(can_den < .5 ) %>% as.data.frame()
+
+confusionMatrix(as.factor(dense_veg$aso),as.factor(dense_veg$pred),mode = 'prec_recall')
+
+```
+
+
+Look at DCe
+
+```{r , echo=FALSE}
+planet_img_swiss <-raster('data/20170516_092458_1030_3B_AnalyticMS_SR_clip.tif')
+dce_met <- raster('./data/dce_Swiss9_out.asc')
+projection(dce_met) <- projection(planet_img_swiss)
+
+dce_ref_wgs84 <- projectRaster(dce_met,crs=crs_latlong,method='ngb')
+cropped_dce <- crop(dce_ref_wgs84, p)
+
+aso_crop_reprdce <- projectRaster(aso_crop,cropped_dce,method='ngb')
+pred_crop_reprdce<- projectRaster(pred1,cropped_dce,method='ngb')
+
+
+df_dce <- stack(aso_crop_reprdce,pred_crop_reprdce,cropped_dce)
+
+raster::writeRaster(df_dce,'data/newstudywithdce-swiss-scene1.tiff',overwrite=TRUE)
+```
+
+Plot the DCE Metrics
+
+```{r , echo=FALSE}
+
+data_matrix_dce <- rasterToPoints(df_dce)
+head(data_matrix_dce)
+datafra_comb_dce <- data_matrix_dce %>% as.data.frame()
+
+colnames(datafra_comb_dce) <- c('x','y','aso','pred','dce')
+datafra_comb_orig <- datafra_comb_dce
+```
+
+```{r , echo=FALSE}
+library(caret)
+datafra_comb_dce <- datafra_comb_orig %>% dplyr::filter(!is.na(dce) & dce <0) %>% as.data.frame()
+
+dense_dce<- datafra_comb_dce %>% dplyr::filter(!is.na(dce)) %>% dplyr::filter(dce < 0 ) %>% as.data.frame()
+
+
+confusionMatrix(as.factor(dense_dce$aso),as.factor(dense_dce$pred),mode = 'prec_recall',positive = '0')
+
+```
+
+
+```{r , echo=FALSE}
+library(caret)
+datafra_comb_dce <- datafra_comb_orig %>% dplyr::filter(!is.na(dce) & dce >0  & dce < 30) %>% as.data.frame()
+
+med_dce<- datafra_comb_dce %>% dplyr::filter(!is.na(dce)) %>% dplyr::filter(dce >0  & dce < 30) %>% as.data.frame()
+
+
+confusionMatrix(as.factor(med_dce$aso),as.factor(med_dce$pred),mode = 'prec_recall')
+
+```
+
+```{r , echo=FALSE}
+library(caret)
+datafra_comb_dce <- datafra_comb_orig %>% dplyr::filter(!is.na(dce) & dce > 30) %>% as.data.frame()
+
+low_dce<- datafra_comb_dce %>% dplyr::filter(!is.na(dce)) %>% dplyr::filter( dce > 30) %>% as.data.frame()
+
+
+confusionMatrix(as.factor(low_dce$aso),as.factor(low_dce$pred),mode = 'prec_recall')
+
+```
+
+
+Do scene 2
+
+
+```{r }
+endCluster()
+```
+
+
