@@ -1,0 +1,39 @@
+---
+title: "R Tree Notebook"
+output: html_notebook
+---
+
+Get this area
+
+```{r}
+library(tidyverse)
+```
+
+
+
+```{r}
+treecanopy <- read_csv('./data/lat-124long41_2020_s30.csv')
+
+treecanopy %>% mutate(b3mean = Band_3_Mean/10000) %>% filter(b3mean >0) %>%
+
+  ggplot() + geom_histogram(aes(y=b3mean))
+
+```
+
+```{r}
+
+treecanopy %>% mutate(b3mean = Band_3_Mean/10000,
+                      b2mean = Band_2_Mean/10000,
+                      b4mean = Band_4_Mean/10000,
+                      b10mean = Band_10_Mean/10000) %>%  
+
+  ggplot() +
+  geom_point(aes(date,b3mean)) +
+  geom_smooth(aes(date,b3mean),color='green') +
+    geom_point(aes(date,b2mean)) +
+  geom_smooth(aes(date,b2mean),color='blue') +
+      geom_point(aes(date,b4mean)) +
+  geom_smooth(aes(date,b4mean),color='red') +
+  geom_point(aes(date,b10mean)) +
+  geom_smooth(aes(date,b10mean),color='yellow') 
+```
