@@ -342,6 +342,137 @@ df_gunni <- plot_longer_df %>%
 write_csv(df_gunni,file='./data/BASECHMREDOCO/processed-data_ch_FA.csv')
 ```
 
+Do canopy density quantification
+
+```{r , echo=FALSE}
+
+cd <- function(x, w) {
+	m <- matrix(1, nc=w, nr=w)
+#	m[ceiling(0.5 * length(m))] <- 0
+	f <- focal(x, m, fun=sum)
+	f
+}
+cdensity <- function(x, w) {
+	m <- matrix(1, nc=w, nr=w)
+#	m[ceiling(0.5 * length(m))] <- 0
+	f <- focal(x, m, fun=mean)
+	f
+}
+
+```
+
+```{r , echo=FALSE}
+#first import all files in a single folder as a list 
+library(tidyverse)
+rastlist <- list.files(path = "data/BASECHMREDOCO/", pattern='.tif', all.files=TRUE, full.names=TRUE)
+chmco <- raster('data/Gunnison__chm_2point1by1point6.tif')
+
+library(caret)
+i=0
+plodemnormbaseredo_CD_DEN <- data.frame()
+plodemnormbaseredo_CD_MED <- data.frame()
+plodemnormbaseredo_CD_SPA <- data.frame()
+
+for (file in  rastlist)
+{
+  print (file)
+  ostudyarea <- raster(file)
+
+   aso_byscene <- crop(aso_colorado, extent(ostudyarea))
+   chm_bystudyarea <- crop(chmco, extent(ostudyarea))
+   aso_byscene <-  projectRaster(aso_byscene,ostudyarea,method="ngb")
+   chm_byscene <-  projectRaster(chm_bystudyarea,ostudyarea,method="ngb")
+   m <- c(-10, 2, 0,  2, 100, 1)
+   rclmat <- matrix(m, ncol=3, byrow=TRUE)
+   r_chm <- reclassify(chm_byscene, rclmat)
+   c_density3by3wc <- cdensity(r_chm, w=3)
+    
+   bysceneasoclip_costudyarea <- stack(aso_byscene,ostudyarea,c_density3by3wc)
+   data_matrix_byscene_chm<- as.data.frame(rasterToPoints(bysceneasoclip_costudyarea))
+   colnames(data_matrix_byscene_chm) <- c('longitude','latitude','aso','pred','can_den')
+   bysceneasoclip_costudyarea <- NULL
+   ddata_matrix_byscene_chm_filtered <- data_matrix_byscene_chm[complete.cases(data_matrix_byscene_chm),]
+
+  
+  ddata_matrix_byscene_chm_filtered_dense_area <- ddata_matrix_byscene_chm_filtered %>% filter(can_den > .75) %>% as.data.frame()
+    ddata_matrix_byscene_chm_filtered_medium_area <- ddata_matrix_byscene_chm_filtered %>% filter(can_den >= .50 & can_den <= .75) %>% as.data.frame()
+        ddata_matrix_byscene_chm_filtered_sparse_area <- ddata_matrix_byscene_chm_filtered %>% filter(can_den < .50) %>% as.data.frame()
+    
+    dense_scenecanopy <- confusionMatrix(as.factor(ddata_matrix_byscene_chm_filtered_dense_area$aso),as.factor(ddata_matrix_byscene_chm_filtered_dense_area$pred),mode = 'prec_recall')
+medium_scenecanopy <- confusionMatrix(as.factor(ddata_matrix_byscene_chm_filtered_medium_area$aso),as.factor(ddata_matrix_byscene_chm_filtered_medium_area$pred),mode = 'prec_recall')
+sparse_scenecanopy <- confusionMatrix(as.factor(ddata_matrix_byscene_chm_filtered_sparse_area$aso),as.factor(ddata_matrix_byscene_chm_filtered_sparse_area$pred),mode = 'prec_recall')
+  
+  print(dense_scenecanopy)
+  print(medium_scenecanopy)
+  print(sparse_scenecanopy)
+  
+  if (i==0)
+  {
+    plodemnormbaseredo_CD_DEN <- as.data.frame( t(dense_scenecanopy$byClass))
+    plodemnormbaseredo_CD_MED <- as.data.frame( t(medium_scenecanopy$byClass))
+    plodemnormbaseredo_CD_SPA <- as.data.frame( t(sparse_scenecanopy$byClass))
+    #plo$file <- file
+    i <- 1
+  }
+  else
+  {
+    plodemnormbaseredo_CD_DEN <- rbind(plodemnormbaseredo_CD_DEN,t(dense_scenecanopy$byClass))
+    plodemnormbaseredo_CD_MED <- rbind(plodemnormbaseredo_CD_MED,t(medium_scenecanopy$byClass))
+    plodemnormbaseredo_CD_SPA <- rbind(plodemnormbaseredo_CD_SPA,t(sparse_scenecanopy$byClass))
+  }
+}
+
+
+```
+
+
+```{r , echo=FALSE}
+plodemnormbaseredo_CD_DEN$Accuracy <- (plodemnormbaseredo_CD_DEN$Sensitivity * plodemnormbaseredo_CD_DEN$Prevalence) + ( (plodemnormbaseredo_CD_DEN$Specificity) * (1-plodemnormbaseredo_CD_DEN$Prevalence))
+
+plodemnormbaseredo_CD_DEN$filename <- rastlist
+
+plot_longer_df <- plodemnormbaseredo_CD_DEN %>% pivot_longer(!filename) %>% as.data.frame()
+df_gunni <- plot_longer_df %>% 
+   group_by(name) %>%
+          dplyr::summarise(avg_metric = mean(value),
+                                        se = sd(value)/sqrt(length(value))) %>%
+  dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy","Accuracy")) %>%
+  as.data.frame()
+
+write_csv(df_gunni,file='./data/BASECHMREDOCO/processed-data_ch_DENSE.csv')
+```
+
+```{r , echo=FALSE}
+plodemnormbaseredo_CD_MED$Accuracy <- (plodemnormbaseredo_CD_MED$Sensitivity * plodemnormbaseredo_CD_MED$Prevalence) + ( (plodemnormbaseredo_CD_MED$Specificity) * (1-plodemnormbaseredo_CD_MED$Prevalence))
+
+plodemnormbaseredo_CD_MED$filename <- rastlist
+
+plot_longer_df <- plodemnormbaseredo_CD_MED %>% pivot_longer(!filename) %>% as.data.frame()
+df_gunni <- plot_longer_df %>% 
+   group_by(name) %>%
+          dplyr::summarise(avg_metric = mean(value),
+                                        se = sd(value)/sqrt(length(value))) %>%
+  dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy","Accuracy")) %>%
+  as.data.frame()
+
+write_csv(df_gunni,file='./data/BASECHMREDOCO/processed-data_ch_MEDIUM.csv')
+```
+
+```{r , echo=FALSE}
+plodemnormbaseredo_CD_SPA$Accuracy <- (plodemnormbaseredo_CD_SPA$Sensitivity * plodemnormbaseredo_CD_SPA$Prevalence) + ( (plodemnormbaseredo_CD_SPA$Specificity) * (1-plodemnormbaseredo_CD_SPA$Prevalence))
+
+plodemnormbaseredo_CD_SPA$filename <- rastlist
+
+plot_longer_df <- plodemnormbaseredo_CD_SPA %>% pivot_longer(!filename) %>% as.data.frame()
+df_gunni <- plot_longer_df %>% 
+   group_by(name) %>%
+          dplyr::summarise(avg_metric = mean(value),
+                                        se = sd(value)/sqrt(length(value))) %>%
+  dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy","Accuracy")) %>%
+  as.data.frame()
+
+write_csv(df_gunni,file='./data/BASECHMREDOCO/processed-data_ch_SPARSE.csv')
+```
 
 ```{r , echo=FALSE}
 endCluster()
