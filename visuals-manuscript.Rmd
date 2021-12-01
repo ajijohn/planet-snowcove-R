@@ -1,0 +1,58 @@
+---
+title: "R visual Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+# raster::drawExtent()
+#class      : Extent 
+#xmin       : -107.0606 
+#xmax       : -107.0533 
+#ymin       : 39.01486 
+#ymax       : 39.02562 
+
+aoi_manu <- extent(c(-107.0606 , -107.0533 , 39.01486 , 39.02562 ))
+```
+
+#visualize
+```{r , echo=FALSE}
+library('ceramic')
+
+data("wrld_simpl", package = "maptools")
+#im <- cc_location(cbind( -107.1661, 38.81874 ), buffer = 1e5, ype = "mapbox.satellite")
+
+aoip<- cc_location(aoi_manu, buffer = 1e5, ype = "mapbox.satellite")
+#im <- cc_location(p, ype = "mapbox.terrain-rgb")
+
+#> Preparing to download: 12 tiles at zoom = 6 from 
+#> https://api.mapbox.com/v4/mapbox.light/
+raster::plotRGB(aoip)
+```
+```{r , echo=FALSE}
+ostudyarea_basechm_co <- raster('data/BASECHMREDOCO/20180524_172327_0f51_3B_AnalyticMS_SR_clip_merged.tif')
+pred_study_basechm_co <- crop(ostudyarea_basechm_co,aoi_manu)
+plot(pred_study_basechm_co)
+```
+
+```{r , echo=FALSE}
+ostudyarea_basendvi_co <- raster('data/COBASENDVIREDO/20180524_172327_0f51_3B_AnalyticMS_SR_clip_merged.tif')
+pred_study_basendvi_co <- crop(ostudyarea_basendvi_co,aoi_manu)
+plot(pred_study_basendvi_co)
+```
+
+
+```{r , echo=FALSE}
+ostudyarea_basedemplus_co <- raster('data/DEMplusCOPredictions/20180524_172327_0f51_3B_AnalyticMS_SR_clip_merged.tif')
+pred_study_basedemplus_co <- crop(ostudyarea_basedemplus_co,aoi_manu)
+plot(pred_study_basedemplus_co)
+```
+
+```{r , echo=FALSE}
+ostudyarea_base_co <- raster('data/COBASE/20180524_172327_0f51_3B_AnalyticMS_SR_clip_merged.tif')
+pred_study_base_co <- crop(ostudyarea_base_co,aoi_manu)
+plot(pred_study_base_co)
+```
