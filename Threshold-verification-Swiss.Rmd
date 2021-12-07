@@ -1,0 +1,27 @@
+---
+title: "R Threshold Notebook"
+output: html_notebook
+---
+
+Check to see how the threshold varies
+
+
+```{r}
+library(tidyverse)
+thresholddemplus <- readr::read_csv('./data/threshold-demplusfscores.txt')
+```
+
+
+
+```{r}
+thresholddemplus %>% ggplot() + geom_point(aes(threshold,value)) +
+  ggpubr::theme_pubclean() +
+  geom_vline(xintercept = c(0.08:1.0),linetype=2,color='blue') +
+    geom_vline(xintercept = c(0.09),linetype=2,color='blue') +
+    geom_vline(xintercept = c(0.10),linetype=2,color='blue') +
+  geom_hline(yintercept = c(0.86),linetype=2,color='blue') +
+  labs(x='ASO - Derived snow-depth threshold (m)', y='F-Score') +
+  scale_x_continuous(breaks = seq(0.03, .20,by=0.01))
+
+ggsave(filename = "figs/thresholdDEMSwiss.png",dpi = 300,height=4,width=8,units="in")
+```

@@ -1,21 +1,30 @@
 ---
-title: "R visual Notebook"
+title: "R mini visual Notebook"
 output: html_notebook
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+Mini area
 
 ```{r}
+library(raster)
+library(tidyverse)
+library(rasterVis)
 # raster::drawExtent()
 #class      : Extent 
 #xmin       : -107.0606 
 #xmax       : -107.0533 
 #ymin       : 39.01486 
 #ymax       : 39.02562 
+#plot(raster('data/model_co_large_aoi_wgs84.tiff'))
+#drawExtent()
 
-aoi_manu <- extent(c(-107.0606 , -107.0533 , 39.01486 , 39.02562 ))
+#class      : Extent 
+#xmin       : -107.0575 
+#xmax       : -107.0556 
+#ymin       : 39.0155 
+#ymax       : 39.0168 
+cols.nb <- c("0" = "blue", "1" = "red")
+aoi_manu <- extent(c(-107.0584   ,  -107.0567   , 39.0226  , 39.02396  ))
 ```
 
 #visualize
@@ -36,7 +45,10 @@ raster::plotRGB(aoip)
 
 ```{r}
 
-aoi_study_CO <-raster::stack('data/model_co_large_aoi_wgs84.tiff')
+largerAreaMapbox <-   raster::stack('data/model_co_large_aoi_wgs84.tiff')
+aoi_study_CO <-raster::crop (largerAreaMapbox,aoi_manu)
+  
+
 plotRGB(aoi_study_CO)
 ```
 Area of the snipped region
@@ -57,10 +69,6 @@ ggspatial::annotation_scale(location = "bl") +
   
 ```
 
-Planet Imagery
-
-
-
 ```{r , echo=FALSE}
 ostudyarea_planet_co <- raster::stack('data/20180524_172327_0f51_3B_AnalyticMS_SR_clip_wgs84.tiff')
 planet_large_study_area <- crop(ostudyarea_planet_co,aoi_manu)
@@ -74,7 +82,6 @@ ggspatial::annotation_scale(location = "bl") +
       style = ggspatial::north_arrow_fancy_orienteering) +
   labs(x='',  y='') 
 ```
-
 
 ```{r , echo=FALSE}
 ostudyarea_basechm_co <- raster('data/BASECHMREDOCO/20180524_172327_0f51_3B_AnalyticMS_SR_clip_merged.tif')
@@ -93,6 +100,8 @@ theme(panel.background = element_rect(colour = "black", fill="white"),legend.pos
         axis.text.y=element_blank(),
         axis.ticks.y=element_blank()) 
 ```
+
+
 ```{r , echo=FALSE}
 ostudyarea_basedem_co <- raster('data/DEMNORMBASEREDO/20180524_172327_0f51_3B_AnalyticMS_SR_clip_merged.tif')
 pred_study_basedemco <- crop(ostudyarea_basedem_co,aoi_manu)
@@ -185,6 +194,9 @@ base_co <- gplot(pred_study_base_co) +
         axis.ticks.y=element_blank()) 
 ```
 
+
+# get the ASO Prediction
+
 ```{r , echo=FALSE}
 aso_colorado <- raster('data/ASO_3M_SD_USCOGE_20180524_binary_wgs84.tif')
 
@@ -193,7 +205,6 @@ aso_colorado <- raster('data/ASO_3M_SD_USCOGE_20180524_binary_wgs84.tif')
 aso_study_area<- crop(aso_colorado,aoi_manu)
 plot(aso_study_area)
 ```
-
 ```{r , echo=FALSE}
 base_aso_imagery <- gplot(aso_study_area) + 
   geom_tile(aes(fill = as.character(value)) ) +
@@ -222,5 +233,5 @@ AEFGH
   plot_annotation(tag_levels = 'A', title = '',
   subtitle = '',
   caption = 'Mosaic by Mapbox (A)') 
-ggsave("figs/main_figure_co_models.png",dpi=300, dev='png',  height=8, width=10,units="in")
+ggsave("figs/main_mini_figure_co_models.png",dpi=300, dev='png',  height=8, width=10,units="in")
 ```
