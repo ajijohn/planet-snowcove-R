@@ -1,0 +1,225 @@
+---
+title: "R visual Notebook - Whole scene but one final - good"
+output: html_notebook
+---
+
+Smaller area
+
+```{r}
+# raster::drawExtent()
+#class      : Extent 
+#xmin       : -107.0606 
+#xmax       : -107.0533 
+#ymin       : 39.01486 
+#ymax       : 39.02562 
+
+#class      : Extent 
+#class      : Extent 
+#xmin       : -107.0562 
+#xmax       : -107.0517 
+#ymin       : 39.04438 
+#ymax       : 39.04847 
+
+whole_scene_planet_co <- raster::stack('data/20180524_172327_0f51_3B_AnalyticMS_SR_clip_wgs84.tiff')
+
+aoi_manu <- extent(c(-107.0562 , -107.0517 ,39.04438 ,39.04847 ))
+```
+
+#visualize
+```{r , echo=FALSE}
+library('ceramic')
+
+data("wrld_simpl", package = "maptools")
+#im <- cc_location(cbind( -107.1661, 38.81874 ), buffer = 1e5, ype = "mapbox.satellite")
+
+aoip<- cc_location(aoi_manu, buffer = 1e5, ype = "mapbox.satellite")
+#im <- cc_location(p, ype = "mapbox.terrain-rgb")
+#model_co_large_aoi <- raster::writeRaster(aoip,'data/model_co_large_aoi.tiff',overwrite=TRUE)
+# gdalwarp swiss-_aoi.tiff swiss-_aoi_wgs84.tiff -t_srs "+proj=longlat +ellps=WGS84"
+#> Preparing to download: 12 tiles at zoom = 6 from 
+#> https://api.mapbox.com/v4/mapbox.light/
+raster::plotRGB(aoip)
+```
+
+```{r}
+
+#aoi_study_CO <-raster::stack('data/model_co_large_aoi_wgs84.tiff')
+#plotRGB(aoi_study_CO)
+```
+Area of the snipped region
+```{r}
+
+#raster::area(projectRaster(whole_scene_planet_co, crs = "+init=epsg:32631"))
+raster::area(raster::stack('data/20180524_172327_0f51_3B_AnalyticMS_SR_clip.tif'))
+```
+
+
+
+Planet Imagery
+
+
+
+```{r , echo=FALSE}
+ostudyarea_planet_co <- raster::stack('data/20180524_172327_0f51_3B_AnalyticMS_SR_clip_wgs84.tiff')
+planet_large_study_area <- crop(ostudyarea_planet_co,aoi_manu)
+#plotRGB(planet_large_study_area)
+baseplanet_co <-  RStoolbox::ggRGB(planet_large_study_area)+
+coord_sf(crs = 4326)+
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none",
+       axis.text.x = element_text(angle = 45, hjust = 1)) +
+ggspatial::annotation_scale(location = "bl") +
+    ggspatial::annotation_north_arrow(location = "br", which_north = "true", height = unit(1.5, "cm"),
+      style = ggspatial::north_arrow_fancy_orienteering) +
+  labs(x='',  y='') 
+```
+
+
+```{r , echo=FALSE}
+cols.nb <- c("0" = "blue", "1" = "red")
+ostudyarea_basechm_co <- raster('data/BASECHMREDOCO/20180524_172327_0f51_3B_AnalyticMS_SR_clip_merged.tif')
+pred_study_basechm_co <- crop(ostudyarea_basechm_co,aoi_manu)
+plot(pred_study_basechm_co)
+basechm_co <- gplot(pred_study_basechm_co) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none", axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) 
+```
+```{r , echo=FALSE}
+ostudyarea_basedem_co <- raster('data/DEMNORMBASEREDO/20180524_172327_0f51_3B_AnalyticMS_SR_clip_merged.tif')
+pred_study_basedemco <- crop(ostudyarea_basedem_co,aoi_manu)
+plot(pred_study_basedemco)
+basedemco <- gplot(pred_study_basedemco) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none", axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) 
+```
+
+```{r , echo=FALSE}
+ostudyarea_basendvi_co <- raster('data/COBASENDVIREDO/20180524_172327_0f51_3B_AnalyticMS_SR_clip_merged.tif')
+pred_study_basendvi_co <- crop(ostudyarea_basendvi_co,aoi_manu)
+plot(pred_study_basendvi_co)
+basendvi_co <- gplot(pred_study_basendvi_co) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none", axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) 
+```
+```{r , echo=FALSE}
+ostudyarea_baseslaspnorth_co <- raster('data/SLASNORNORMBASEREDOCO/20180524_172327_0f51_3B_AnalyticMS_SR_clip_merged.tif')
+pred_study_baseslopaspnorth_co <- crop(ostudyarea_baseslaspnorth_co,aoi_manu)
+plot(pred_study_baseslopaspnorth_co)
+baseslopspnorth_co <- gplot(pred_study_baseslopaspnorth_co) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none", axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) 
+```
+
+```{r , echo=FALSE}
+ostudyarea_basedemplus_co <- raster('data/DEMplusCOPredictions/20180524_172327_0f51_3B_AnalyticMS_SR_clip_merged.tif')
+pred_study_basedemplus_co <- crop(ostudyarea_basedemplus_co,aoi_manu)
+plot(pred_study_basedemplus_co)
+basedemplus_co <- gplot(pred_study_basedemplus_co) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none", axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) 
+```
+
+```{r , echo=FALSE}
+ostudyarea_base_co <- raster('data/COBASE/20180524_172327_0f51_3B_AnalyticMS_SR_clip_merged.tif')
+pred_study_base_co <- crop(ostudyarea_base_co,aoi_manu)
+plot(pred_study_base_co)
+```
+
+```{r , echo=FALSE}
+base_co <- gplot(pred_study_base_co) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+  theme(text = element_text(size=12) ,panel.background = element_rect(colour = "black", fill="white"),legend.position = "none", axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) 
+```
+
+```{r , echo=FALSE}
+aso_colorado <- raster('data/ASO_3M_SD_USCOGE_20180524_binary_wgs84.tif')
+
+
+
+aso_study_area<- crop(aso_colorado,aoi_manu)
+plot(aso_study_area)
+```
+
+```{r , echo=FALSE}
+base_aso_imagery <- gplot(aso_study_area) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+  theme(text = element_text(size=12) ,panel.background = element_rect(colour = "black", fill="white"),legend.position = "none", axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) 
+```
+
+
+```{r , echo=FALSE}
+library(patchwork)
+layout <- "
+ABCD
+HEFG
+"
+ baseplanet_co + base_co +basedemplus_co+ basechm_co +
+   basendvi_co + baseslopspnorth_co + basedemco + base_aso_imagery+
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = 'A', title = '',
+  subtitle = '',
+  caption = 'RGB Imagery by Planet (A)') 
+ggsave("figs/main_figure_co_models_scene-subset-good-openedge.png",dpi=300, dev='png',  height=8, width=8,units="in")
+```
