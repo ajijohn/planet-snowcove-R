@@ -16,7 +16,7 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
 ```{r }
-
+library(tidyverse)
 ```
 
 ## Including Plots
@@ -160,4 +160,214 @@ p + geom_polygon(fill="white",color = "black", size = 0.2) +
 ggsave("figs/studysitesclasspaper.png",dpi=300, dev='png',units="in")
 
 ```
+x = 10.03, y=46.5818
 
+```{r }
+library(rjson)
+library(sp)
+snow_sites <- data.frame(
+  Longitude = c(-120.2413, -106.9253), 
+  Latitude = c(37.9627, 38.5458), 
+  site = c("Tuolumne", "Gunnison")
+)
+
+
+xy <- cbind(x=snow_sites$Longitude , 
+            y=snow_sites$Latitude)
+S <- SpatialPoints(xy)
+bbox(S)
+
+
+library(ggmap)
+pp_stamen <- get_stamenmap(bbox = bbox(S),
+                                zoom = 10)
+pp_stamen
+ggmap(pp_stamen) +
+  geom_point(data = snow_sites,
+             mapping = aes(x = snow_sites$Longitude,
+                            y = snow_sites$Latitude,color=as.factor(site))) +
+  labs(x="Longitude", y="Latitude",color="Site") +
+  theme_minimal(base_size = 15)
+
+ggsave("figs/snow_mapsites.png",dpi=300, dev='png', height=12, width=16, units="in")
+
+```
+
+```{r }
+library(ggspatial)
+cities <- data.frame(
+  x = c(-120.2413, -106.9253), 
+  y = c(37.9627, 38.5458), 
+  city = c("Tuolumne", "Gunnison")
+)
+
+ggplot(cities, aes(x, y)) +
+  annotation_map_tile(type = "osm", zoom = 6) +
+  geom_spatial_point() +
+  geom_spatial_label_repel(aes(label = city), box.padding = 1) +
+  coord_sf(crs = 4326) +
+  annotation_scale(location = "tl") +
+  annotation_north_arrow(location = "br", which_north = "true") +
+  labs(x="Longitude",y="Latitude") +
+  ggpubr::theme_pubclean() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave("figs/locations_map_na.png",dpi=300, dev='png', height=5, width=5, units="in")
+```
+```{r }
+library(ggspatial)
+cities <- data.frame(
+  x = c(10.03), 
+  y = c(46.5818), 
+  city = c("Engadine")
+)
+
+ggplot(cities, aes(x, y)) +
+  annotation_map_tile(type = "osm", zoom = 6) +
+  geom_spatial_point() +
+  geom_spatial_label_repel(aes(label = city), box.padding = 1) +
+  coord_sf(crs = 4326) +
+  annotation_scale(location = "tl") +
+  annotation_north_arrow(location = "br", which_north = "true") +
+  labs(x="Longitude",y="Latitude") +
+  ggpubr::theme_pubclean() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave("figs/locations_map_eu.png",dpi=300, dev='png', height=5, width=10, units="in")
+```
+
+
+```{r }
+plain <- theme(
+  axis.text = element_blank(),
+  axis.line = element_blank(),
+  axis.ticks = element_blank(),
+  panel.border = element_blank(),
+  panel.grid = element_blank(),
+  axis.title = element_blank(),
+  #panel.background = element_rect(fill = "white"),
+  plot.title = element_text(hjust = 0.5),
+  panel.grid.major = element_line(color = gray(.5), 
+  linetype = 'dashed', size = 0.5), 
+  panel.background = element_rect(fill = 'aliceblue')
+)
+
+ggplot(data = world_c, mapping = aes(x = long, y = lat, group = group)) + 
+  coord_fixed(1.3) +
+  geom_polygon(fill="white",color = "black",size=0.1) +
+  scale_fill_distiller(palette ="RdBu", direction = -1) + # or direction=1
+       geom_point(aes(x = -120.2413, y=37.9627),size=3,   color = "red", alpha = 0.25) + 
+    geom_point(aes(x = 10.03, y=46.5818),size=3, color = "red", alpha = 0.25) +
+      geom_point(aes(x = -106.9253, y=38.5458),size=3, , color = "red", alpha = 0.25) +
+   annotate("text", x = -119.25, y=37.89, label = '1', hjust = 0.1,colour = "black",size = 2) +   
+  annotate("text", x=10.03, y=46.5818, label = '2', hjust = 0.1, colour = "black", size = 2) +
+   annotate("text", x = -107.14, y=39.08, label = '3', hjust = 0.1, colour = "black", size = 2) +
+  #ggtitle("Global Human Development Index (HDI)") +
+  plain
+
+
+```
+
+```{r }
+require(marmap)
+
+#-xmin       : -107.2186 
+##xmax       : -107.0267 
+#ymin       : 38.99996 
+#ymax       : 39.09938 
+# get bathymetry data
+pt.baty = getNOAA.bathy(
+                  lon1 = -107.2186 , 
+                  lon2 = -107.0267 , 
+                  lat1 = 38.99996 , 
+                  lat2 = 39.09938  , resolution = 2  )
+# plot(pt.baty)
+# autoplot(pt.baty, geom=c("r", "c"), colour="grey", size=0.1) + scale_fill_etopo()
+
+# plot it:
+ggplot(pt.baty, aes(x=x, y=y)) +
+  coord_quickmap() +
+  geom_raster(aes(fill=z)) +
+  scale_fill_etopo() +
+  geom_contour(aes(z=z),
+    breaks=c(0, -10, -20, -50, -100, -200, -1000), colour="grey", size=0.2) +
+  scale_x_continuous(expand=c(0,0)) +
+  scale_y_continuous(expand=c(0,0)) +
+  xlab("Longitude")+ylab("Latitude")+
+  ggtitle("NOAA-ETOPO marmap")
+
+ggsave("figs/areas-study.png",dpi=300, dev='png',units="in")
+
+```
+
+```{r }
+library(sf)
+#> Linking to GEOS 3.7.1, GDAL 3.1.2, PROJ 7.1.0
+library(maptiles)
+nc <- read_sf("tuol-larger.geojson")
+nc_osm <- get_tiles(nc, crop = TRUE, zoom = 15)
+nc_osm[is.na(nc_osm)] = 0
+# display map
+plot_tiles(nc_osm)
+# add Norh Carolina counties
+plot(st_geometry(nc), col = NA, add = TRUE)
+# add credit
+mtext(text = get_credit("OpenStreetMap"), 
+      side = 1, line = -1, adj = 1, cex = .9, 
+      font = 3)
+```
+
+Using ceramic
+```{r , echo=FALSE}
+library('ceramic')
+library(terra)
+require(rgdal)
+
+data("wrld_simpl", package = "maptools")
+#im <- cc_location(cbind( -107.1661, 38.81874 ), buffer = 1e5, ype = "mapbox.satellite")
+
+nc <- read_sf("tuol-larger.geojson")
+# Project to EPSG:3857
+nc <- st_transform(nc, "EPSG:4326")
+
+# convert to SpatialPolygons
+nc_poly <- as(st_geometry(nc), "Spatial")
+
+im <- cc_location(nc_poly, buffer = 500, ype = "mapbox.satellite")
+#im <- cc_location(p, ype = "mapbox.terrain-rgb")
+
+#> Preparing to download: 12 tiles at zoom = 6 from 
+#> https://api.mapbox.com/v4/mapbox.light/
+
+#raster::writeRaster(im,filename = './data/whole_area_tuol_tif',overwrite=TRUE)
+
+p_tuol <- fortify(nc_poly)
+
+plotRGB(im)
+plot(st_geometry(nc), add = TRUE, lwd = 2, border = "black")
+```
+
+
+```{r , echo=FALSE}
+
+crs<-"+proj=longlat +datum=WGS84"
+
+# Project Raster
+projected_raster_tuol_rt <- raster::projectRaster(im, crs = crs)
+
+aoi_tuol_ca <- raster::extent(projected_raster_tuol)
+poly_aoi_tuol_ca<- as(aoi_tuol_ca,'SpatialPolygons')
+p_study_cal <- fortify(poly_aoi_tuol_ca)
+
+ RStoolbox::ggRGB(projected_raster_tuol_rt)+
+    coord_sf(crs = 4326)   +
+theme(panel.background = element_rect(colour = "black", fill="white"),
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+ggspatial::annotation_scale(  pad_x = unit(0.5, "mm"),pad_y = unit(0.5, "mm"),location = "bl", width_hint = 0.5) +
+  # ggspatial::annotation_north_arrow(location = "tr", which_north = "true", 
+   #    pad_x = unit(0.5, "mm"),pad_y = unit(0.5, "mm"),style = #ggspatial::north_arrow_fancy_orienteering) +
+ geom_polygon(aes(long,lat), alpha = 0.2, color='green',data = p_tuol) +
+#coord_equal() +
+  labs(x='',  y='') 
+
+```

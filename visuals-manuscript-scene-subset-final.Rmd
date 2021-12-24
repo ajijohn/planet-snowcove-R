@@ -70,7 +70,11 @@ theme(panel.background = element_rect(colour = "black", fill="white"),legend.pos
 ggspatial::annotation_scale(location = "bl") +
     ggspatial::annotation_north_arrow(location = "br", which_north = "true", height = unit(1.5, "cm"),
       style = ggspatial::north_arrow_fancy_orienteering) +
-  labs(x='',  y='') 
+  labs(x='',  y='') +theme(text = element_text(size=16) ,panel.background = element_rect(colour = "black", fill="white"),legend.position = "none", axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) +  labs(title = "Planet RGB")
 ```
 
 
@@ -86,11 +90,11 @@ basechm_co <- gplot(pred_study_basechm_co) +
                     breaks = 0:1,
                     labels = c("No snow", "Snow"),
                     name = "") +
-theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none", axis.title.x=element_blank(),
+theme(text = element_text(size=16) ,panel.background = element_rect(colour = "black", fill="white"),legend.position = "none", axis.title.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),axis.title.y=element_blank(),
         axis.text.y=element_blank(),
-        axis.ticks.y=element_blank()) 
+        axis.ticks.y=element_blank()) +  labs(title  = "BASE+CHM")
 ```
 ```{r , echo=FALSE}
 ostudyarea_basedem_co <- raster('data/DEMNORMBASEREDO/20180524_172327_0f51_3B_AnalyticMS_SR_clip_merged.tif')
@@ -103,11 +107,11 @@ basedemco <- gplot(pred_study_basedemco) +
                     breaks = 0:1,
                     labels = c("No snow", "Snow"),
                     name = "") +
-theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none", axis.title.x=element_blank(),
+theme(text = element_text(size=16) ,panel.background = element_rect(colour = "black", fill="white"),legend.position = "none", axis.title.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),axis.title.y=element_blank(),
         axis.text.y=element_blank(),
-        axis.ticks.y=element_blank()) 
+        axis.ticks.y=element_blank())  +  labs(title = "BASE+DEM")
 ```
 
 ```{r , echo=FALSE}
@@ -121,11 +125,11 @@ basendvi_co <- gplot(pred_study_basendvi_co) +
                     breaks = 0:1,
                     labels = c("No snow", "Snow"),
                     name = "") +
-theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none", axis.title.x=element_blank(),
+theme(text = element_text(size=16), panel.background = element_rect(colour = "black", fill="green"),legend.position = "none", axis.title.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),axis.title.y=element_blank(),
         axis.text.y=element_blank(),
-        axis.ticks.y=element_blank()) 
+        axis.ticks.y=element_blank()) +  labs(title = "BASE+NDVI")
 ```
 ```{r , echo=FALSE}
 ostudyarea_baseslaspnorth_co <- raster('data/SLASNORNORMBASEREDOCO/20180524_172327_0f51_3B_AnalyticMS_SR_clip_merged.tif')
@@ -138,11 +142,11 @@ baseslopspnorth_co <- gplot(pred_study_baseslopaspnorth_co) +
                     breaks = 0:1,
                     labels = c("No snow", "Snow"),
                     name = "") +
-theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none", axis.title.x=element_blank(),
+theme(text = element_text(size=16),panel.background = element_rect(colour = "black", fill="white"),legend.position = "none", axis.title.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),axis.title.y=element_blank(),
         axis.text.y=element_blank(),
-        axis.ticks.y=element_blank()) 
+        axis.ticks.y=element_blank()) +  labs(title = "BASE+Slope+Aspect+\nNorthness")
 ```
 
 ```{r , echo=FALSE}
@@ -156,11 +160,11 @@ basedemplus_co <- gplot(pred_study_basedemplus_co) +
                     breaks = 0:1,
                     labels = c("No snow", "Snow"),
                     name = "") +
-theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none", axis.title.x=element_blank(),
+theme(text = element_text(size=16),panel.background = element_rect(colour = "black", fill="white"),legend.position = "none", axis.title.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),axis.title.y=element_blank(),
         axis.text.y=element_blank(),
-        axis.ticks.y=element_blank()) 
+        axis.ticks.y=element_blank())   +  labs(title = "BASE+DEM+Slope+\nAspect+Northness")
 ```
 
 ```{r , echo=FALSE}
@@ -177,11 +181,11 @@ base_co <- gplot(pred_study_base_co) +
                     breaks = 0:1,
                     labels = c("No snow", "Snow"),
                     name = "") +
-  theme(text = element_text(size=12) ,panel.background = element_rect(colour = "black", fill="white"),legend.position = "none", axis.title.x=element_blank(),
+  theme(text = element_text(size=16) ,panel.background = element_rect(colour = "black", fill="white"),legend.position = "none", axis.title.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),axis.title.y=element_blank(),
         axis.text.y=element_blank(),
-        axis.ticks.y=element_blank()) 
+        axis.ticks.y=element_blank()) +  labs(title = "BASE")
 ```
 
 ```{r , echo=FALSE}
@@ -201,11 +205,11 @@ base_aso_imagery <- gplot(aso_study_area) +
                     breaks = 0:1,
                     labels = c("No snow", "Snow"),
                     name = "") +
-  theme(text = element_text(size=12) ,panel.background = element_rect(colour = "black", fill="white"),legend.position = "none", axis.title.x=element_blank(),
+  theme(text = element_text(size=16) ,panel.background = element_rect(colour = "black", fill="white"),legend.position = "left", axis.title.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),axis.title.y=element_blank(),
         axis.text.y=element_blank(),
-        axis.ticks.y=element_blank()) 
+        axis.ticks.y=element_blank())   +  labs(title =  "ASO LIDAR SCA")
 ```
 
 
@@ -221,5 +225,5 @@ HEFG
   plot_annotation(tag_levels = 'A', title = '',
   subtitle = '',
   caption = 'RGB Imagery by Planet (A)') 
-ggsave("figs/main_figure_co_models_scene-subset-good-openedge.png",dpi=300, dev='png',  height=8, width=8,units="in")
+ggsave("figs/main_figure_co_models_scene-subset-good-openedge.png",dpi=300, dev='png',  height=12, width=14,units="in")
 ```
