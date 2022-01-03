@@ -1,0 +1,61 @@
+---
+title: "R Notebook - Model deep analysis"
+output: html_notebook
+---
+
+
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+
+
+```{r cars}
+df_co_modelchmbase <- read_csv(file='./data/BASECHMREDOCO/processed-data.csv')
+df_co_modelchmbase$modelID <- 'BASE+CHM'
+df_co_modeldembase <- read_csv(file='./data/DEMNORMBASEREDO/processed-data.csv')
+df_co_modeldembase$modelID <- 'BASE+DEM'
+
+df_co_modelndvibase <- read_csv(file='./data/COBASENDVIREDO/processed-data.csv')
+df_co_modelndvibase$modelID <- 'BASE+NDVI'
+df_co_modelslaspnorthbase <- read_csv(file='./data/SLASNORNORMBASEREDOCO/processed-data.csv')
+df_co_modelslaspnorthbase$modelID <- 'BASE+SLOPE+ASPECT+NORTHNESS'
+
+df_co_modeldemplusbase <- read_csv(file='./data/DEMplusCOPredictions/processed-data.csv')
+df_co_modeldemplusbase$modelID <- 'BASE+DEM+SLOPE+ASPECT+NORTHNESS'
+df_co_modelbase <- read_csv(file='./data/COBASE/processed-data.csv')
+df_co_modelbase$modelID <- 'BASE'
+
+
+
+```
+
+## CH
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+
+perfmodelsco <- rbind(df_co_modelchmbase,
+                      df_co_modeldembase,
+                      df_co_modelndvibase,
+                      df_co_modelslaspnorthbase,
+                      df_co_modeldemplusbase,
+                      df_co_modelbase)
+
+perfmodelsco %>% mutate(score = round(avg_metric,2)) %>% 
+  ggplot() + 
+  #geom_bar(aes(name,score,fill = modelID),stat="identity", width = 0.5, position = position_dodge(0.8)) +
+  # geom_text(aes(name,score,label=score, group=modelID), position=position_dodge(width=0.8)) +
+   geom_bar(aes(name,score,fill = modelID),stat="identity",position = position_dodge(0.9), width = .8) +
+    geom_errorbar(aes(x=name,y=score,ymin=score-se, ymax=score+se, group=modelID), width=.2,
+                 position=position_dodge(.9),color="#7FC97F") +
+   geom_text(aes(name,score,label=score, group=modelID), vjust = -0.2, size = 2,
+            position = position_dodge(0.9), colour = "black") +
+ labs(x="" , y="",subtitle="",fill="") + theme_minimal(base_size = 12)+
+  #scale_fill_brewer(palette = "Pastel2")
+  ggpubr::theme_pubr()
+ggsave(filename = "figs/models-res_co.png",dpi = 300,height=4,width=8,units="in")
+```
