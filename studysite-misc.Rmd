@@ -1,0 +1,310 @@
+---
+title: "Studysite-misc"
+author: "Aji John"
+date: "1/3/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r }
+library(tidyverse)
+library(ForestGapR)
+library(fieldRS)
+library(viridis)
+library(rasterVis)
+library(ceramic)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+Prepare C - Area, chm and dem
+
+```{r, echo=FALSE}
+#asodem_img_gunni_stack <-raster::stack('data/gunnison_dem3m_rep4326.tiff')
+#planet_img_swiss_stack <- planet_img_swiss_stack/10000
+library(sf)
+nc <- read_sf("data/gunnison.geojson")
+# Project to EPSG:3857
+nc <- st_transform(nc, "EPSG:4326")
+
+aoi_open <- extent(c(-107.0562 , -107.0517 ,39.04438 ,39.04847 ))
+aoi_forest <- extent(c(-107.0562   , -107.051  ,39.03749  , 39.04471  ))
+
+
+nc_poly_open <- as(aoi_open, 'SpatialPolygons') 
+nc_poly_forest<- as(aoi_forest, 'SpatialPolygons') 
+
+#dem_gunni +
+
+#  coord_equal()
+
+```
+
+```{r, echo=FALSE}
+
+# convert to SpatialPolygons
+nc_poly <- as(st_geometry(nc), "Spatial")
+
+im_gunni <- cc_elevation(nc_poly, buffer = 500, ype = "mapbox.satellite")
+
+p_gunni <- fortify(nc_poly)
+
+plot(im_gunni)
+
+crs<-"+proj=longlat +datum=WGS84"
+
+# Project Raster
+projected_raster_gunni_rt <- raster::projectRaster(im_gunni, crs = crs)
+
+ gplot(projected_raster_gunni_rt)+
+   coord_sf(crs = 4326)+
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x='',  y='', fill="Elevation (m)") 
+```
+Plot the chm
+
+```{r, echo=FALSE}
+
+veg_all_gunni <- raster('data/Gunnison__chm_2point1by1point6.tif')
+
+ gplot(veg_all_gunni)+
+   coord_sf(crs = 4326)+
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x='',  y='', fill="Canopy height  (m)") 
+```
+
+
+
+Using ceramic
+```{r , echo=FALSE}
+
+
+nc_swiss <- read_sf("data/Swiss_polygon84.geojson")
+# Project to EPSG:3857
+nc_swiss_poly <- st_transform(nc_swiss, "EPSG:4326")
+
+# convert to SpatialPolygons
+nc_poly_swiss <- as(st_geometry(nc_swiss_poly), "Spatial")
+
+p_swiss <- fortify(nc_poly_swiss)
+
+# convert to SpatialPolygons
+nc_poly_cswiss <- as(st_geometry(nc_swiss_poly), "Spatial")
+
+im_swiss<- cc_elevation(nc_poly_cswiss, buffer = 500, ype = "mapbox.satellite")
+
+
+
+plot(im_swiss)
+
+crs<-"+proj=longlat +datum=WGS84"
+
+# Project Raster
+projected_raster_swiss_rt <- raster::projectRaster(im_swiss, crs = crs)
+
+ gplot(projected_raster_swiss_rt)+
+   coord_sf(crs = 4326)+
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00',guide = FALSE) + 
+  theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+   guides(fill = guide_colorbar(title = "DEM (m)",
+                               label.position = "bottom",
+                               title.position = "left", title.vjust = 1,
+                               # draw border around the legend
+                               frame.colour = "black",
+                               barwidth = 15,
+                               barheight = 1.5)) +
+  labs(x='',  y='', fill="Elevation (m)") 
+```
+
+
+
+Plot the chm
+
+```{r, echo=FALSE}
+
+veg_all_swiss <- raster('data/EUCHDB20170829f1a1_CHM_WGS84.tif')
+veg_all_swiss_crop <- crop(veg_all_swiss, extent(projected_raster_swiss_rt))
+ gplot(veg_all_swiss)+
+   coord_sf(crs = 4326)+
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x='',  y='', fill="Canopy height  (m)") 
+```
+
+
+
+Using ceramic
+```{r , echo=FALSE}
+
+
+nc_tuol <- read_sf("tuol-larger.geojson")
+# Project to EPSG:3857
+nc_tuol <- st_transform(nc_tuol, "EPSG:4326")
+
+# convert to SpatialPolygons
+nc_tuol_poly <- as(st_geometry(nc_tuol), "Spatial")
+
+im_tuol <- cc_elevation(nc_tuol_poly, buffer = 500, ype = "mapbox.satellite")
+#im <- cc_location(p, ype = "mapbox.terrain-rgb")
+
+#> Preparing to download: 12 tiles at zoom = 6 from 
+#> https://api.mapbox.com/v4/mapbox.light/
+
+#raster::writeRaster(im,filename = './data/whole_area_tuol_tif',overwrite=TRUE)
+
+plot(im_tuol)
+#plot(st_geometry(nc), add = TRUE, lwd = 2, border = "black")
+
+crs<-"+proj=longlat +datum=WGS84"
+
+# Project Raster
+projected_raster_tuol_rt <- raster::projectRaster(im_tuol, crs = crs)
+
+ gplot(projected_raster_tuol_rt)+
+   coord_sf(crs = 4326)+
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00',guide=FALSE) + 
+  theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+      guides(fill = guide_colorbar(title = "Elevation (m)",
+                               label.position = "bottom",
+                               title.position = "left", title.vjust = 1,
+                               # draw border around the legend
+                               frame.colour = "black",
+                               barwidth = 15,
+                               barheight = 1.5)) +
+  labs(x='',  y='', fill="DEM (m)") 
+ 
+ 
+```
+Plot the chm
+
+```{r, echo=FALSE}
+
+veg_all_tuol<- raster('data/veg-tuol.tiff')
+
+ gplot(veg_all_tuol)+
+   coord_sf(crs = 4326)+
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x='',  y='', fill="Canopy height  (m)") 
+```
+
+```{r , echo=FALSE}
+library(patchwork)
+layout <- "
+ABC
+DEF
+"
+
+dem_tuol <-  gplot(projected_raster_tuol_rt)+
+   coord_sf(crs = 4326)+
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00',guide=FALSE) + 
+  theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+      guides(fill = guide_colorbar(title = "Elevation (m)",
+                               label.position = "bottom",
+                               title.position = "left", title.vjust = 1,
+                               # draw border around the legend
+                               frame.colour = "black",
+                               barwidth = 10,
+                               barheight = 1.2)) +
+  labs(x='',  y='', fill="Elevation (m)") 
+
+veg_tuol <- gplot(veg_all_tuol)+
+   coord_sf(crs = 4326)+
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x='',  y='', fill="Canopy height  (m)") 
+
+
+ dem_gunni <- gplot(projected_raster_gunni_rt)+
+   coord_sf(crs = 4326)+
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00',guide=FALSE) + 
+  theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+    geom_polygon(aes(long,lat), alpha = 0.2, color='red',data = nc_poly_open) +
+  geom_polygon(aes(long,lat), alpha = 0.2, color='blue',data = nc_poly_forest) +
+       guides(fill = guide_colorbar(title = "Elevation (m)",
+                               label.position = "bottom",
+                               title.position = "left", title.vjust = 1,
+                               # draw border around the legend
+                               frame.colour = "black",
+                               barwidth = 10,
+                               barheight = 1.2)) +
+  labs(x='',  y='', fill="Elevation (m)") 
+ 
+veg_gunni <-  gplot(veg_all_gunni)+
+   coord_sf(crs = 4326)+
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+   geom_polygon(aes(long,lat), alpha = 0.2, color='red',data = nc_poly_open) +
+  geom_polygon(aes(long,lat), alpha = 0.2, color='blue',data = nc_poly_forest) +
+  theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x='',  y='', fill="Canopy height  (m)") 
+ 
+ dem_chm <-  gplot(projected_raster_swiss_rt)+
+   coord_sf(crs = 4326)+
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00',guide = FALSE) + 
+  theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+   guides(fill = guide_colorbar(title = "Elevation (m)",
+                               label.position = "bottom",
+                               title.position = "left", title.vjust = 1,
+                               # draw border around the legend
+                               frame.colour = "black",
+                               barwidth = 10,
+                               barheight = 1.2)) +
+  labs(x='',  y='', fill="Elevation (m)") 
+ 
+veg_chm <- gplot(veg_all_swiss)+
+   coord_sf(crs = 4326)+
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x='',  y='', fill="Canopy height  (m)") 
+ 
+ dem_tuol + dem_gunni + dem_chm  +
+  veg_tuol+veg_gunni+veg_chm+
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = 'A', title = '',
+  subtitle = '',
+  caption = '') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggsave("figs/studysite-misc.png",dpi=300, dev='png',  height=10, width=12,units="in")
+```
+```{r , echo=FALSE}
+nc <- read_sf("data/Swiss_polygon84.geojson")
+
+
+```

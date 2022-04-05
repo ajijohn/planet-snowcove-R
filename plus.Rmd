@@ -1,0 +1,17 @@
+---
+title: "R Notebook Mosaic Coarser - Prediction"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r , echo=FALSE}
+rast38 <- rast('./data/CHDEMPLUSSRTMEXT/20170516_092514_1028_3B_AnalyticMS_SR_clip_merged.tif')
+rast39 <- rast('./data/CHDEMPLUSSRTMEXT/20170516_092515_1028_3B_AnalyticMS_SR_clip_merged.tif')
+rast38_rep <-  terra::project(rast38,rast39,method="ngb")
+  
+mm <- terra::merge( rast38_rep,rast39,overwrite=TRUE,filename='./data/SRTMCHPRED.tiff')
+
+```

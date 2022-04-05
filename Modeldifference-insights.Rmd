@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 ```
 
-
+Colorado
 
 ```{r cars}
 df_co_modelchmbase <- read_csv(file='./data/BASECHMREDOCO/processed-data.csv')
@@ -32,7 +32,7 @@ df_co_modelbase$modelID <- 'BASE'
 
 ```
 
-## CH
+## CO
 
 You can also embed plots, for example:
 
@@ -44,6 +44,8 @@ perfmodelsco <- rbind(df_co_modelchmbase,
                       df_co_modelslaspnorthbase,
                       df_co_modeldemplusbase,
                       df_co_modelbase)
+
+perfmodelsco$site <- 'Gunnison'
 
 perfmodelsco %>% mutate(score = round(avg_metric,2)) %>% 
   ggplot() + 
@@ -58,4 +60,94 @@ perfmodelsco %>% mutate(score = round(avg_metric,2)) %>%
   #scale_fill_brewer(palette = "Pastel2")
   ggpubr::theme_pubr()
 ggsave(filename = "figs/models-res_co.png",dpi = 300,height=4,width=8,units="in")
+```
+CH
+
+```{r }
+df_ch_modelchmbase <- read_csv(file='./data/BASECHMREDOCO/processed-data.csv')
+df_ch_modelchmbase$modelID <- 'BASE+CHM'
+df_ch_modeldembase <- read_csv(file='./data/CHDEMNORMBASEREDO/processed-data.csv')
+df_ch_modeldembase$modelID <- 'BASE+DEM'
+
+df_ch_modelndvibase <- read_csv(file='./data/CHBASENDVIREDO/processed-data.csv')
+df_ch_modelndvibase$modelID <- 'BASE+NDVI'
+df_ch_modelslaspnorthbase <- read_csv(file='./data/SLASNORNORMBASEREDOCH/processed-data.csv')
+df_ch_modelslaspnorthbase$modelID <- 'BASE+SLOPE+ASPECT+NORTHNESS'
+
+df_ch_modeldemplusbase <- read_csv(file='./data/DEMplusCHPredictions/processed-data.csv')
+df_ch_modeldemplusbase$modelID <- 'BASE+DEM+SLOPE+ASPECT+NORTHNESS'
+df_ch_modelbase <- read_csv(file='./data/CHBASE/processed-data.csv')
+df_ch_modelbase$modelID <- 'BASE'
+
+
+
+```
+
+
+```{r, echo=FALSE}
+
+perfmodelsch <- rbind(df_ch_modelchmbase,
+                      df_ch_modeldembase,
+                      df_ch_modelndvibase,
+                      df_ch_modelslaspnorthbase,
+                      df_ch_modeldemplusbase,
+                      df_ch_modelbase)
+
+perfmodelsch$site <- 'Engadine'
+
+perfmodelsch %>% mutate(score = round(avg_metric,2)) %>% 
+  ggplot() + 
+  #geom_bar(aes(name,score,fill = modelID),stat="identity", width = 0.5, position = position_dodge(0.8)) +
+  # geom_text(aes(name,score,label=score, group=modelID), position=position_dodge(width=0.8)) +
+   geom_bar(aes(name,score,fill = modelID),stat="identity",position = position_dodge(0.9), width = .8) +
+    geom_errorbar(aes(x=name,y=score,ymin=score-se, ymax=score+se, group=modelID), width=.2,
+                 position=position_dodge(.9),color="#7FC97F") +
+   geom_text(aes(name,score,label=score, group=modelID), vjust = -0.2, size = 2.6,
+            position = position_dodge(0.9), colour = "black") +
+ labs(x="" , y="",subtitle="",fill="") + theme_minimal(base_size = 18)+
+  #scale_fill_brewer(palette = "Pastel2")
+  ggpubr::theme_pubr()
+ggsave(filename = "figs/models-res_ch.png",dpi = 300,height=4,width=8,units="in")
+```
+
+
+Area of the study  (Original)
+```{r , echo=FALSE}
+library(patchwork)
+layout <- "
+AA
+BB
+"
+
+perfgunnia <- perfmodelsco %>% mutate(score = round(avg_metric,2)) %>% 
+  ggplot() + 
+  #geom_bar(aes(name,score,fill = modelID),stat="identity", width = 0.5, position = position_dodge(0.8)) +
+  # geom_text(aes(name,score,label=score, group=modelID), position=position_dodge(width=0.8)) +
+   geom_bar(aes(name,score,fill = modelID),stat="identity",position = position_dodge(0.9), width = .8) +
+    geom_errorbar(aes(x=name,y=score,ymin=score-se, ymax=score+se, group=modelID), width=.2,
+                 position=position_dodge(.9),color="#7FC97F") +
+   geom_text(aes(name,score,label=score, group=modelID), vjust = -0.2, size = 2.6,
+            position = position_dodge(0.9), colour = "black") +
+ labs(x="" , y="",subtitle="",fill="") + theme_minimal(base_size = 12)+
+  #scale_fill_brewer(palette = "Pastel2")
+  ggpubr::theme_pubr()
+
+perfswissa <- perfmodelsch %>% mutate(score = round(avg_metric,2)) %>% 
+  ggplot() + 
+  #geom_bar(aes(name,score,fill = modelID),stat="identity", width = 0.5, position = position_dodge(0.8)) +
+  # geom_text(aes(name,score,label=score, group=modelID), position=position_dodge(width=0.8)) +
+   geom_bar(aes(name,score,fill = modelID),stat="identity",position = position_dodge(0.9), width = .8) +
+    geom_errorbar(aes(x=name,y=score,ymin=score-se, ymax=score+se, group=modelID), width=.2,
+                 position=position_dodge(.9),color="#7FC97F") +
+   geom_text(aes(name,score,label=score, group=modelID), vjust = -0.2, size = 2.6,
+            position = position_dodge(0.9), colour = "black") +
+ labs(x="" , y="",subtitle="",fill="") + theme_minimal(base_size = 12)+
+  #scale_fill_brewer(palette = "Pastel2")
+  ggpubr::theme_pubr()
+
+ perfgunnia + perfswissa +   plot_annotation(tag_levels = 'A') +
+  plot_layout(design = layout, guides = "collect") & theme(legend.position = 'bottom') 
+
+  #theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggsave("figs/modelanalysis.png",dpi=300, dev='png',  height=8, width=12,units="in")
 ```

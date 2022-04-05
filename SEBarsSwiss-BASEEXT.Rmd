@@ -1,5 +1,5 @@
 ---
-title: "SE Bars Notebook - CO with BASE and Slope aspect northness"
+title: "SE Bars Notebook- Swiss BASE EXT"
 output: html_notebook
 ---
 
@@ -10,7 +10,8 @@ Try executing this chunk by clicking the *Run* button within the chunk or by pla
 
 ```{r , echo=FALSE}
 library(raster)
-aso_colorado <- raster('data/ASO_3M_SD_USCOGE_20180524_binary_wgs84.tif')
+library(tidyverse)
+aso_ch <- raster('data/EUCHDB20170517_SUPERsnow_depth_3m_binary_wgs84_3m.tif')
 
 
 ```
@@ -35,87 +36,85 @@ start_time <- Sys.time()
 
 ```{r , echo=FALSE}
 #first import all files in a single folder as a list 
-rastlist <- list.files(path = "data/SLASNORNORMBASEREDOCO/", pattern='.tif', all.files=TRUE, full.names=TRUE)
-library(caret)
+rastlist <- list.files(path = "data/SWISSBASEEXT2/", pattern='.tif', all.files=TRUE, full.names=TRUE)
+ library(caret)
 i=0
-plo <- data.frame()
-skip_to_next <- FALSE
- 
+ploch <- data.frame()
+
 for (file in  rastlist)
 {
   print (file)
   fileinprocess <- raster(file)
-  skip_to_next <- FALSE
+
  
-   aso_byscene <- crop(aso_colorado, extent(fileinprocess))
+   aso_byscene <- crop(aso_ch, extent(fileinprocess))
    aso_byscene <-  projectRaster(aso_byscene,fileinprocess,method="ngb")
   bysceneasoclip <- stack(aso_byscene,fileinprocess)
   data_matrix_byscene<- as.data.frame(rasterToPoints(bysceneasoclip))
   colnames(data_matrix_byscene) <- c('longitude','latitude','aso','pred')
   data_matrix_byscene_filtered <- data_matrix_byscene[complete.cases(data_matrix_byscene),]
- tryCatch(
-  cf <- confusionMatrix(as.factor(data_matrix_byscene_filtered$aso),as.factor(data_matrix_byscene_filtered$pred),mode = 'prec_recall') ,
- error = function(e) { skip_to_next <<- TRUE})
-  
-  if(skip_to_next) { next }  
-  
+  cf <- confusionMatrix(as.factor(data_matrix_byscene_filtered$aso),as.factor(data_matrix_byscene_filtered$pred),mode = 'prec_recall')
   print(cf)
   if (i==0)
   {
-    plo <- as.data.frame( t(cf$byClass))
+    ploch <- as.data.frame( t(cf$byClass))
     #plo$file <- file
     i <- 1
   }
   else
   {
-    plo <- rbind(plo,t(cf$byClass))
+    ploch <- rbind(ploch,t(cf$byClass))
   }
 }
 
-head(plo)
+head(ploch)
 ```
 
 Add file names
 
 ```{r }
-library(tidyverse)
-plo$Accuracy <- (plo$Sensitivity * plo$Prevalence) + ( (plo$Specificity) * (1-plo$Prevalence))
 
-plo$filename <- rastlist
 
-plot_longer_df <- plo %>% pivot_longer(!filename) %>% as.data.frame()
+ploch$Accuracy <- (ploch$Sensitivity * ploch$Prevalence) + ( (ploch$Specificity) * (1-ploch$Prevalence))
+head(ploch)
+
+ploch$filename <- rastlist
+
+plotch_longer_df <- ploch %>% pivot_longer(!filename) %>% as.data.frame()
 ```
 
 ```{r }
 library(ggplot2)
 
-df_gunni <- plot_longer_df %>% 
+df_swiss <- plotch_longer_df %>% 
    group_by(name) %>%
           dplyr::summarise(avg_metric = mean(value),
                                         se = sd(value)/sqrt(length(value))) %>%
   dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy","Accuracy")) %>%
   as.data.frame()
 
-write_csv(df_gunni,file='./data/SLASNORNORMBASEREDOCO/processed-data.csv')
+write_csv(df_swiss,file='./data/SWISSBASEEXT2/processed-data.csv')
+
 
 # Default bar plot
-p<- plot_longer_df %>% 
+pch<- plotch_longer_df %>% 
    group_by(name) %>%
           dplyr::summarise(avg_metric = mean(value),
                                         se = sd(value)/sqrt(length(value))) %>%
-  dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy",  "Accuracy")) %>%
+  dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy" ,"Accuracy")) %>%
 ggplot(aes(x=name, y=avg_metric)) + 
   geom_bar(stat="identity",color="black" , 
            position=position_dodge()) +
   geom_errorbar(aes(ymin=avg_metric-se, ymax=avg_metric+se), width=.2,
                  position=position_dodge(.9),color="#7FC97F") +
   theme_minimal(base_size = 18)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   ggpubr::theme_cleveland() +
   labs(x="",y="Value")
-plot_gunni <- p
+swiss_plot <- pch
 
-print(p)
-ggsave("figs/all_scenes_gunnison_cobasenslopeaspectnorthness.png",dpi=300, dev='png',  height=8, width=10,units="in")
+print(pch)
+ggsave("figs/all_scenes_ch-BASEext.png",dpi=300, dev='png',  height=8, width=10,units="in")
 # Finished bar plot
 #p+labs(title="Tooth length per dose", x="Dose (mg)", y = "Length")+
 #   theme_classic() +
@@ -123,144 +122,42 @@ ggsave("figs/all_scenes_gunnison_cobasenslopeaspectnorthness.png",dpi=300, dev='
 
 ```
 
-  Specific scene - 20180524_172637_0f2d
+  Specific scene - 20180524_172637_0f2d (If needed )
  
-```{r }
-library(ggplot2)
-# Default bar plot
-p_specific<- plot_longer_df %>% 
-    dplyr::filter(str_detect(filename,"20180524_172637_0f2d")) %>%
-   group_by(name) %>%
-          dplyr::summarise(avg_metric = mean(value),
-                                        se = sd(value)/sqrt(length(value))) %>%
-  dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy",  "Accuracy")) %>%
 
+```{r }
+library(tidyverse)
+plotch_longer_df <- read_csv(file='./data/SWISSBASEEXT2/processed-data.csv')
+
+
+# Default bar plot
+pch<- plotch_longer_df %>% 
+  dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy" ,"Accuracy")) %>%
 ggplot(aes(x=name, y=avg_metric)) + 
-  geom_bar(stat="identity", color="black", 
+  geom_bar(stat="identity",color="black" , 
            position=position_dodge()) +
   geom_errorbar(aes(ymin=avg_metric-se, ymax=avg_metric+se), width=.2,
                  position=position_dodge(.9),color="#7FC97F") +
   theme_minimal(base_size = 18)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   ggpubr::theme_cleveland() +
-  labs(x="Metric",y="Value")
-print(p_specific)
-# Finished bar plot
-#p+labs(title="Tooth length per dose", x="Dose (mg)", y = "Length")+
-#   theme_classic() +
-#   scale_fill_manual(values=c('#999999','#E69F00'))
-ggsave("figs/all_scenes_gunnison_specific-basewithslopeaspectnorth.png",dpi=300, dev='png',  height=8, width=10,units="in")
-```
+  labs(x="",y="Value")
+swiss_plot <- pch
 
-plot the studied area
-
-```{r }
-ostudyarea <- raster('data/SLASNORNORMBASEREDOCO/20180524_172637_0f2d_3B_AnalyticMS_SR_clip_merged.tif')
-cols.nb <- c("0" = "blue", "1" = "red")
-   aso_byscene_study <- crop(aso_colorado, extent(ostudyarea))
-   aso_byscene_study <-  projectRaster(aso_byscene_study,ostudyarea,method="ngb")
-   
-   plotgunnib2_ostudy <- gplot(ostudyarea) + 
-  geom_tile(aes(fill = as.character(value)) ) +
-   coord_sf(crs = 4326)+
-  scale_fill_manual(values = cols.nb,
-                    breaks = 0:1,
-                    labels = c("No snow", "Snow"),
-                    name = "") +
-theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none",
-       axis.text.x = element_text(angle = 45, hjust = 1)) +
-ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
-    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
-       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
-  labs(x='',  y='') 
-
-
-plotgunnib1_ostudy  <- gplot(aso_byscene_study) + 
-  geom_tile(aes(fill = as.character(value)) ) +
-   coord_sf(crs = 4326)+
-  scale_fill_manual(values = cols.nb,
-                    breaks = 0:1,
-                    labels = c("No snow", "Snow"),
-                    name = "") +
-  #theme_bw()+
-theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none",
-       axis.text.x = element_text(angle = 45, hjust = 1)) +
-ggspatial::annotation_scale(location = "tr", width_hint = 0.2) +
-    ggspatial::annotation_north_arrow(location = "bl", which_north = "true", 
-       pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) +
-  labs(x='',  y='') 
-   
-```
-
-Canopy and not canopy plot
-```{r , echo=FALSE}
-
-ostudyarea <- raster('data/SLASNORNORMBASEREDOCO/20180524_172637_0f2d_3B_AnalyticMS_SR_clip_merged.tif')
-chmco <- raster('data/Gunnison__chm_2point1by1point6.tif')
-
-   aso_byscene <- crop(aso_colorado, extent(ostudyarea))
-   chm_bystudyarea <- crop(chmco, extent(ostudyarea))
-   
-   aso_byscene <-  projectRaster(aso_byscene,ostudyarea,method="ngb")
-   
-    chm_byscene <-  projectRaster(chm_bystudyarea,ostudyarea,method="ngb")
-    
-  bysceneasoclip_costudyarea <- stack(aso_byscene,ostudyarea,chm_byscene)
-  data_matrix_byscene_chm<- as.data.frame(rasterToPoints(bysceneasoclip_costudyarea))
-  colnames(data_matrix_byscene_chm) <- c('longitude','latitude','aso','pred','canopyheight')
-  ddata_matrix_byscene_chm_filtered <- data_matrix_byscene_chm[complete.cases(data_matrix_byscene_chm),]
-  cf_chm <- confusionMatrix(as.factor(ddata_matrix_byscene_chm_filtered$aso),as.factor(ddata_matrix_byscene_chm_filtered$pred),mode = 'prec_recall')
-  cf_chm
-  
-  ddata_matrix_byscene_chm_filtered_chm_area <- ddata_matrix_byscene_chm_filtered %>% filter(canopyheight > 1) %>% as.data.frame()
-    ddata_matrix_byscene_chm_filtered_nonchm_area <- ddata_matrix_byscene_chm_filtered %>% filter(canopyheight <= 1) %>% as.data.frame()
-
-cm_scenecanopy <- confusionMatrix(as.factor(ddata_matrix_byscene_chm_filtered_chm_area$aso),as.factor(ddata_matrix_byscene_chm_filtered_chm_area$pred),mode = 'prec_recall')
-cm_scenenocanopy <- confusionMatrix(as.factor(ddata_matrix_byscene_chm_filtered_nonchm_area$aso),as.factor(ddata_matrix_byscene_chm_filtered_nonchm_area$pred),mode = 'prec_recall')
+print(pch)
+ggsave("figs/all_scenes_ch-baseext.png",dpi=300, dev='png',  height=8, width=10,units="in")
 
 ```
 
-```{r , echo=FALSE}
-plo_focussed_scene <- as.data.frame( t(cm_scenecanopy$byClass))
-plo_focussed_scene <- rbind(plo_focussed_scene,t(cm_scenenocanopy$byClass))
 
-plo_focussed_scene$type <- c('FA','OA')
-
-plo_focussed_scene_df <- plo_focussed_scene %>% pivot_longer(!type) %>% as.data.frame()
-
-plo_focussed_scene_df %>% 
-  mutate(value = round(value,2)) %>% 
-    dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy")) %>%
-  ggplot() + geom_bar(aes(name,value,fill = type), position = "dodge",stat="identity", width=.5) +
-   geom_text(aes(name,value,label=value, group=type), position=position_dodge(width=0.5), vjust=-0.3) +
- labs(x="" , y="",subtitle="",fill="") + theme_minimal(base_size = 18)+
-  ggpubr::theme_pubclean()
-ggsave(filename = "figs/scenepreditCO_both_rev_BASEslopeaspectnorthness.png",dpi = 300,height=4,width=8,units="in")
-
-
-```  
-
-Area of the study  (Original)
-```{r , echo=FALSE}
-library(patchwork)
-layout <- "
-AB
-"
- plotgunnib1_ostudy + plotgunnib2_ostudy + 
-  plot_layout(design = layout) +
-  plot_annotation(tag_levels = 'A', title = '',
-  subtitle = '',
-  caption = 'Mapbox (C)') +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-ggsave("figs/co_aoi_original_ms-BASEslopeaspectnorthness.png",dpi=300, dev='png',  height=8, width=12,units="in")
-```
 
 Do across the tiles canopy quantification 
 
 ```{r , echo=FALSE}
 #first import all files in a single folder as a list 
 library(tidyverse)
-rastlist <- list.files(path = "data/SLASNORNORMBASEREDOCO/", pattern='.tif', all.files=TRUE, full.names=TRUE)
-chmco <- raster('data/Gunnison__chm_2point1by1point6.tif')
+rastlist <- list.files(path = "data/SWISSBASEEXT2/", pattern='.tif', all.files=TRUE, full.names=TRUE)
+chmco <- raster('data/EUCHDB20170829f1a1_CHM_WGS84.tif')
 
 library(caret)
 i=0
@@ -272,7 +169,7 @@ for (file in  rastlist)
   print (file)
   ostudyarea <- raster(file)
 
-   aso_byscene <- crop(aso_colorado, extent(ostudyarea))
+   aso_byscene <- crop(aso_ch, extent(ostudyarea))
    chm_bystudyarea <- crop(chmco, extent(ostudyarea))
    aso_byscene <-  projectRaster(aso_byscene,ostudyarea,method="ngb")
    chm_byscene <-  projectRaster(chm_bystudyarea,ostudyarea,method="ngb")
@@ -310,6 +207,7 @@ cm_scenenocanopy <- confusionMatrix(as.factor(ddata_matrix_byscene_chm_filtered_
 ```
 
 
+
 ```{r , echo=FALSE}
 plodemnormbaseredo_OA$Accuracy <- (plodemnormbaseredo_OA$Sensitivity * plodemnormbaseredo_OA$Prevalence) + ( (plodemnormbaseredo_OA$Specificity) * (1-plodemnormbaseredo_OA$Prevalence))
 
@@ -323,7 +221,7 @@ df_gunni <- plot_longer_df %>%
   dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy","Accuracy")) %>%
   as.data.frame()
 
-write_csv(df_gunni,file='./data/SLASNORNORMBASEREDOCO/processed-data_ch_OA.csv')
+write_csv(df_gunni,file='./data/SWISSBASEEXT2/processed-data_ch_OA.csv')
 ```
 
 ```{r , echo=FALSE}
@@ -339,13 +237,9 @@ df_gunni <- plot_longer_df %>%
   dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy","Accuracy")) %>%
   as.data.frame()
 
-write_csv(df_gunni,file='./data/SLASNORNORMBASEREDOCO/processed-data_ch_FA.csv')
+write_csv(df_gunni,file='./data/SWISSBASEEXT2/processed-data_ch_FA.csv')
 ```
 
-
-
-
-Do canopy density quantification
 
 ```{r , echo=FALSE}
 
@@ -364,11 +258,13 @@ cdensity <- function(x, w) {
 
 ```
 
+
+
 ```{r , echo=FALSE}
 #first import all files in a single folder as a list 
 library(tidyverse)
-rastlist <- list.files(path = "data/SLASNORNORMBASEREDOCO/", pattern='.tif', all.files=TRUE, full.names=TRUE)
-chmco <- raster('data/Gunnison__chm_2point1by1point6.tif')
+rastlist <- list.files(path = "data/SWISSBASEEXT2/", pattern='.tif', all.files=TRUE, full.names=TRUE)
+chmco <- raster('data/EUCHDB20170829f1a1_CHM_WGS84.tif')
 
 library(caret)
 i=0
@@ -381,7 +277,7 @@ for (file in  rastlist)
   print (file)
   ostudyarea <- raster(file)
 
-   aso_byscene <- crop(aso_colorado, extent(ostudyarea))
+   aso_byscene <- crop(aso_ch, extent(ostudyarea))
    chm_bystudyarea <- crop(chmco, extent(ostudyarea))
    aso_byscene <-  projectRaster(aso_byscene,ostudyarea,method="ngb")
    chm_byscene <-  projectRaster(chm_bystudyarea,ostudyarea,method="ngb")
@@ -428,6 +324,8 @@ sparse_scenecanopy <- confusionMatrix(as.factor(ddata_matrix_byscene_chm_filtere
 
 ```
 
+
+
 ```{r , echo=FALSE}
 plodemnormbaseredo_CD_DEN$Accuracy <- (plodemnormbaseredo_CD_DEN$Sensitivity * plodemnormbaseredo_CD_DEN$Prevalence) + ( (plodemnormbaseredo_CD_DEN$Specificity) * (1-plodemnormbaseredo_CD_DEN$Prevalence))
 
@@ -441,7 +339,7 @@ df_gunni <- plot_longer_df %>%
   dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy","Accuracy")) %>%
   as.data.frame()
 
-write_csv(df_gunni,file='./data/SLASNORNORMBASEREDOCO/processed-data_ch_DENSE.csv')
+write_csv(df_gunni,file='./data/SWISSBASEEXT2/processed-data_ch_DENSE.csv')
 ```
 
 ```{r , echo=FALSE}
@@ -457,7 +355,7 @@ df_gunni <- plot_longer_df %>%
   dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy","Accuracy")) %>%
   as.data.frame()
 
-write_csv(df_gunni,file='./data/SLASNORNORMBASEREDOCO/processed-data_ch_MEDIUM.csv')
+write_csv(df_gunni,file='./data/SWISSBASEEXT2/processed-data_ch_MEDIUM.csv')
 ```
 
 ```{r , echo=FALSE}
@@ -473,11 +371,8 @@ df_gunni <- plot_longer_df %>%
   dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy","Accuracy")) %>%
   as.data.frame()
 
-write_csv(df_gunni,file='./data/SLASNORNORMBASEREDOCO/processed-data_ch_SPARSE.csv')
+write_csv(df_gunni,file='./data/SWISSBASEEXT2/processed-data_ch_SPARSE.csv')
 ```
-
-
-
 
 
 DCE
@@ -487,10 +382,10 @@ DCE
 #first import all files in a single folder as a list 
 library(tidyverse)
 library(raster)
-rastlist <- list.files(path = "data/SLASNORNORMBASEREDOCO/", pattern='.tif', all.files=TRUE, full.names=TRUE)
+rastlist <- list.files(path = "data/SWISSBASEEXT2/", pattern='.tif', all.files=TRUE, full.names=TRUE)
 
 skip_to_next_OPEN <- FALSE
-dce_ref_wgs84 <- raster('data/gunnidcecorrecrt.tif')
+dce_ref_wgs84 <- raster('data/swissdcecorrecrt.tif')
 
 library(caret)
 i=0
@@ -504,7 +399,7 @@ for (file in  rastlist)
   ostudyarea <- raster(file)
   skip_to_next_OPEN <- FALSE
   
-   aso_byscene <- crop(aso_colorado, extent(ostudyarea))
+   aso_byscene <- crop(aso_ch, extent(ostudyarea))
    aso_byscene <-  projectRaster(aso_byscene,ostudyarea,method="ngb")
    xy_stack <- stack(aso_byscene,ostudyarea)
     
@@ -567,10 +462,11 @@ sparse_scenecanopy <- confusionMatrix(as.factor(ddata_matrix_byscene_chm_filtere
 ```
 
 
+
 ```{r , echo=FALSE}
 plodemnormbaseredo_CD_UC$Accuracy <- (plodemnormbaseredo_CD_UC$Sensitivity * plodemnormbaseredo_CD_UC$Prevalence) + ( (plodemnormbaseredo_CD_UC$Specificity) * (1-plodemnormbaseredo_CD_UC$Prevalence))
 
-plodemnormbaseredo_CD_UC$filename <- rastlist
+plodemnormbaseredo_CD_UC$filename <- 'rastlist'
 
 plot_longer_df <- plodemnormbaseredo_CD_UC %>% pivot_longer(!filename) %>% as.data.frame()
 df_gunni <- plot_longer_df %>% 
@@ -580,13 +476,14 @@ df_gunni <- plot_longer_df %>%
   dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy","Accuracy")) %>%
   as.data.frame()
 
-write_csv(df_gunni,file='./data/SLASNORNORMBASEREDOCO/processed-data_ch_UC.csv')
+write_csv(df_gunni,file='./data/SWISSBASEEXT2/processed-data_ch_UC.csv')
 ```
+
 
 ```{r , echo=FALSE}
 plodemnormbaseredo_CD_CE$Accuracy <- (plodemnormbaseredo_CD_CE$Sensitivity * plodemnormbaseredo_CD_CE$Prevalence) + ( (plodemnormbaseredo_CD_CE$Specificity) * (1-plodemnormbaseredo_CD_CE$Prevalence))
 
-plodemnormbaseredo_CD_CE$filename <- rastlist
+plodemnormbaseredo_CD_CE$filename <- 'rastlist'
 
 plot_longer_df <- plodemnormbaseredo_CD_CE %>% pivot_longer(!filename) %>% as.data.frame()
 df_gunni <- plot_longer_df %>% 
@@ -596,8 +493,9 @@ df_gunni <- plot_longer_df %>%
   dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy","Accuracy")) %>%
   as.data.frame()
 
-write_csv(df_gunni,file='./data/SLASNORNORMBASEREDOCO/processed-data_ch_CE.csv')
+write_csv(df_gunni,file='./data/SWISSBASEEXT2/processed-data_ch_CE.csv')
 ```
+
 
 ```{r , echo=FALSE}
 plodemnormbaseredo_CD_OPEN$Accuracy <- (plodemnormbaseredo_CD_OPEN$Sensitivity * plodemnormbaseredo_CD_OPEN$Prevalence) + ( (plodemnormbaseredo_CD_OPEN$Specificity) * (1-plodemnormbaseredo_CD_OPEN$Prevalence))
@@ -617,8 +515,9 @@ df_gunni <- plot_longer_df %>%
   dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy","Accuracy")) %>%
   as.data.frame()
 
-write_csv(df_gunni,file='./data/SLASNORNORMBASEREDOCO/processed-data_ch_OPEN.csv')
+write_csv(df_gunni,file='./data/SWISSBASEEXT2/processed-data_ch_OPEN.csv')
 ```
+
 
 ```{r , echo=FALSE}
 endCluster()
@@ -626,3 +525,60 @@ end_time <- Sys.time()
 end_time - start_time
 
 ```
+
+
+<!-- # ```{r } -->
+<!-- # ostudyarea <- raster('data/DEMplusCOPredictions/20180524_172637_0f2d_3B_AnalyticMS_SR_clip_merged.tif') -->
+<!-- #  -->
+<!-- #    aso_byscene_study <- crop(aso_colorado, extent(ostudyarea)) -->
+<!-- #    aso_byscene_study <-  projectRaster(aso_byscene_study,ostudyarea,method="ngb") -->
+<!-- #     -->
+<!-- #    plotgunnib2_ostudy <- gplot(ostudyarea) +  -->
+<!-- #   geom_tile(aes(fill = as.character(value)) ) + -->
+<!-- #    coord_sf(crs = 4326)+ -->
+<!-- #   scale_fill_manual(values = cols.nb, -->
+<!-- #                     breaks = 0:1, -->
+<!-- #                     labels = c("No snow", "Snow"), -->
+<!-- #                     name = "") + -->
+<!-- # theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none", -->
+<!-- #        axis.text.x = element_text(angle = 45, hjust = 1)) + -->
+<!-- # ggspatial::annotation_scale(location = "tr", width_hint = 0.2) + -->
+<!-- #     ggspatial::annotation_north_arrow(location = "bl", which_north = "true",  -->
+<!-- #        pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) + -->
+<!-- #   labs(x='',  y='')  -->
+<!-- #  -->
+<!-- #  -->
+<!-- # plotgunnib1_ostudy  <- gplot(aso_byscene_study) +  -->
+<!-- #   geom_tile(aes(fill = as.character(value)) ) + -->
+<!-- #    coord_sf(crs = 4326)+ -->
+<!-- #   scale_fill_manual(values = cols.nb, -->
+<!-- #                     breaks = 0:1, -->
+<!-- #                     labels = c("No snow", "Snow"), -->
+<!-- #                     name = "") + -->
+<!-- #   #theme_bw()+ -->
+<!-- # theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "none", -->
+<!-- #        axis.text.x = element_text(angle = 45, hjust = 1)) + -->
+<!-- # ggspatial::annotation_scale(location = "tr", width_hint = 0.2) + -->
+<!-- #     ggspatial::annotation_north_arrow(location = "bl", which_north = "true",  -->
+<!-- #        pad_y = unit(0.2, "mm"),style = ggspatial::north_arrow_fancy_orienteering) + -->
+<!-- #   labs(x='',  y='')  -->
+<!-- #     -->
+<!-- # ``` -->
+
+
+<!-- Area of the study  (Original) -->
+<!-- ```{r , echo=FALSE} -->
+<!-- library(patchwork) -->
+<!-- layout <- " -->
+<!-- AB -->
+<!-- " -->
+<!--  plotgunnib1_ostudy + plotgunnib2_ostudy +  -->
+<!--   plot_layout(design = layout) + -->
+<!--   plot_annotation(tag_levels = 'A', title = '', -->
+<!--   subtitle = '', -->
+<!--   caption = 'Mapbox (C)') + -->
+<!--   theme(axis.text.x = element_text(angle = 45, hjust = 1)) -->
+<!-- ggsave("figs/co_aoi_original_ms.png",dpi=300, dev='png',  height=8, width=12,units="in") -->
+<!-- ``` -->
+
+
