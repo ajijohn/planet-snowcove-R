@@ -1,0 +1,71 @@
+---
+title: "R Visuals Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(tidyverse)
+
+visuals_paper <- read_csv('data/fscores-all.csv')
+visuals_paper_df <-  visuals_paper %>% pivot_longer(cols=c('Tuolumne','Gunnison','Engadine')) %>% as.data.frame()
+
+visuals_paper_df %>% ggplot(aes(x=model, y=value,group=name,fill=name)) + 
+  geom_bar(stat="identity" , 
+           position=position_dodge()) +
+  theme_minimal(base_size = 24)+
+  scale_y_continuous(name="F-score", limits=c(0, 1),breaks=seq(0,1, by=0.10)) +
+
+  labs(x="Models",y="F-Score",fill="") +  theme(legend.position="bottom",axis.text.x = element_text( hjust = 1)) + coord_flip()
+ggsave("figs/fscoresmodel.png",dpi=300, dev='png',  height=10, width=12,units="in")
+
+```
+
+
+```{r}
+library(tidyverse)
+
+visuals_paper_cq <- read_csv('data/canopyquant.csv')
+visuals_paper_cq_cd <-  visuals_paper_cq %>% pivot_longer(cols=c('Sparse','Medium','Dense')) %>% as.data.frame()
+
+visuals_paper_cq_dce <-  visuals_paper_cq %>% pivot_longer(cols=c('Open','CE','UC')) %>% as.data.frame()
+
+visuals_paper_cq_ch <-  visuals_paper_cq %>% pivot_longer(cols=c('OA','FA')) %>% as.data.frame()
+
+panela <- visuals_paper_cq_cd %>% ggplot(aes(x=Model, y=value,group=name,fill=name)) + 
+  geom_bar(stat="identity" , 
+           position=position_dodge()) +
+  theme_minimal(base_size = 18)+
+
+  labs(x="Models",y="F-Score",title="Canopy Density (CD)", fill = "") +  theme(legend.position="bottom",axis.text.x = element_text( hjust = 1)) + coord_flip()
+
+panelb<- visuals_paper_cq_dce %>% ggplot(aes(x=Model, y=value,group=name,fill=name)) + 
+  geom_bar(stat="identity" , 
+           position=position_dodge()) +
+  theme_minimal(base_size = 18)+
+
+  labs(x="Models",y="F-Score",title="Distance to Canopy Edge (DCE)",fill="") +  theme(legend.position="bottom",axis.text.x = element_text( hjust = 1)) + coord_flip() +
+  scale_
+
+panelc<- visuals_paper_cq_ch %>% ggplot(aes(x=Model, y=value,group=name,fill=name)) + 
+  geom_bar(stat="identity" , 
+           position=position_dodge()) +
+  theme_minimal(base_size = 18)+
+
+  labs(x="Models",y="F-Score",title=" Canopy Height (CH)", fill="") +  theme(legend.position="bottom",axis.text.x = element_text( hjust = 1)) + coord_flip()
+
+library(patchwork) 
+ layout <- " 
+ A
+ B
+ C
+ " 
+  panela +panelb + panelc +  
+plot_layout(design = layout) + 
+ plot_annotation(tag_levels = 'A', title = '',
+subtitle = '', 
+caption = '')
+
+ggsave("figs/fscoresmodelcanopy.png",dpi=300, dev='png',  height=12, width=10,units="in")
+
+```

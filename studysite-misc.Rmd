@@ -38,8 +38,9 @@ nc <- read_sf("data/gunnison.geojson")
 # Project to EPSG:3857
 nc <- st_transform(nc, "EPSG:4326")
 
+
 aoi_open <- extent(c(-107.0562 , -107.0517 ,39.04438 ,39.04847 ))
-aoi_forest <- extent(c(-107.0562   , -107.051  ,39.03749  , 39.04471  ))
+aoi_forest <- extent(c(-107.0786 ,-107.0528 ,39.0447 ,39.06995 ))
 
 
 nc_poly_open <- as(aoi_open, 'SpatialPolygons') 
@@ -251,7 +252,7 @@ veg_tuol <- gplot(veg_all_tuol)+
   theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
       axis.text.x = element_text(angle = 45, hjust = 1)) +
     geom_polygon(aes(long,lat), alpha = 0.2, color='red',data = nc_poly_open) +
-  geom_polygon(aes(long,lat), alpha = 0.2, color='blue',data = nc_poly_forest) +
+  geom_polygon(aes(long,lat), alpha = 0.2, color='white',data = nc_poly_forest) +
        guides(fill = guide_colorbar(title = "Elevation (m)",
                                label.position = "bottom",
                                title.position = "left", title.vjust = 1,
@@ -266,7 +267,7 @@ veg_gunni <-  gplot(veg_all_gunni)+
   geom_tile(aes(fill = value))  +
  viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
    geom_polygon(aes(long,lat), alpha = 0.2, color='red',data = nc_poly_open) +
-  geom_polygon(aes(long,lat), alpha = 0.2, color='blue',data = nc_poly_forest) +
+  geom_polygon(aes(long,lat), alpha = 0.2, color='white',data = nc_poly_forest) +
   theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",
       axis.text.x = element_text(angle = 45, hjust = 1)) +
   labs(x='',  y='', fill="Canopy height  (m)") 

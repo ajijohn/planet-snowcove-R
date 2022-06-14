@@ -315,17 +315,17 @@ ggsave("figs/areas-study.png",dpi=300, dev='png',units="in")
 library(sf)
 #> Linking to GEOS 3.7.1, GDAL 3.1.2, PROJ 7.1.0
 library(maptiles)
-nc <- read_sf("tuol-larger.geojson")
-nc_osm <- get_tiles(nc, crop = TRUE, zoom = 15)
-nc_osm[is.na(nc_osm)] = 0
-# display map
-plot_tiles(nc_osm)
-# add Norh Carolina counties
-plot(st_geometry(nc), col = NA, add = TRUE)
-# add credit
-mtext(text = get_credit("OpenStreetMap"), 
-      side = 1, line = -1, adj = 1, cex = .9, 
-      font = 3)
+# nc <- read_sf("tuol-larger.geojson")
+# nc_osm <- get_tiles(nc, crop = TRUE, zoom = 15)
+# nc_osm[is.na(nc_osm)] = 0
+# # display map
+# plot_tiles(nc_osm)
+# # add Norh Carolina counties
+# plot(st_geometry(nc), col = NA, add = TRUE)
+# # add credit
+# mtext(text = get_credit("OpenStreetMap"), 
+#       side = 1, line = -1, adj = 1, cex = .9, 
+#       font = 3)
 ```
 
 Using ceramic
@@ -366,7 +366,7 @@ crs<-"+proj=longlat +datum=WGS84"
 # Project Raster
 projected_raster_tuol_rt <- raster::projectRaster(im, crs = crs)
 
-aoi_tuol_ca <- raster::extent(projected_raster_tuol)
+aoi_tuol_ca <- raster::extent(projected_raster_tuol_rt)
 poly_aoi_tuol_ca<- as(aoi_tuol_ca,'SpatialPolygons')
 p_study_cal <- fortify(poly_aoi_tuol_ca)
 
@@ -502,4 +502,39 @@ AD
   subtitle = '',
   caption = 'Imagery by Mapbox') 
 ggsave("figs/main_figure_study-all.png",dpi=300, dev='png',  height=8, width=8,units="in")
+```
+
+```{r , echo=FALSE}
+library(patchwork)
+
+tuolplot+gunniplot+swissplot+
+  plot_annotation( title = '',
+  subtitle = '',
+  caption = 'Imagery by Mapbox') 
+ggsave("figs/main_figure_study-sites.png",dpi=300, dev='png')
+```
+
+```{r , echo=FALSE}
+library(patchwork)
+
+ mainplot +
+  plot_annotation( title = '',
+  subtitle = '',
+  caption = '') 
+ggsave("figs/main_figure.png",dpi=300, dev='png')
+```
+
+
+```{r , echo=FALSE}
+library(patchwork)
+layout <- "
+AAA
+BCD
+"
+ mainplot + tuolplot+gunniplot+swissplot+
+  plot_layout(design = layout) +
+  plot_annotation( title = '',
+  subtitle = '',
+  caption = 'Imagery by Mapbox') 
+ggsave("figs/main_figure_study-all-ver1.png",dpi=300, dev='png',  height=8, width=8,units="in")
 ```

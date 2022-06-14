@@ -1,0 +1,39 @@
+---
+title: "R Notebook for 30m CA creation"
+output: html_notebook
+---
+
+read al files in a folder
+
+```{r}
+file_list = list.files(path='./data/30m/CA',pattern = ".hgt", full.names = T, recursive = T)
+
+
+for(file in file_list){
+   filename <- basename(file)
+   justfile<-tools::file_path_sans_ext(filename)
+   print(file) 
+    print(justfile) 
+    print(filename)
+    withtiff <- paste('./data/30m/CA/tif/',justfile,'.tif',sep = "")
+   foo <- system(paste("gdalwarp  -r cubic ",file,withtiff), intern= TRUE,ignore.stdout=F,ignore.stderr = T,wait=T)
+   print(foo)
+ 
+
+}
+  
+
+```
+
+
+```{r}
+file_list_cotif = list.files(path='./data/30m/CA/tif',pattern = ".tif", full.names = T, recursive = T)
+filelist_str <- paste(file_list_cotif, sep=" ", collapse=' ')
+
+destfile <- './data/30m/CA/merged/ca30m.tif'
+outp <- system(paste('gdalwarp -r cubic -overwrite ',filelist_str, destfile ), intern= TRUE,ignore.stdout=F,ignore.stderr = T,wait=T)
+print(outp)  
+
+```
+
+

@@ -1,21 +1,11 @@
 ---
-title: "R visual Notebook - Whole scene"
+title: "R visual Notebook - Whole scene but one big"
 output: html_notebook
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+Smaller area
 
 ```{r}
-library(raster)
-library(sf)
-library(tidyverse)
-library(sp)
-library(rasterVis)
-
-cols.nb <- c("0" = "blue", "1" = "red")
-
 # raster::drawExtent()
 #class      : Extent 
 #xmin       : -107.0606 
@@ -23,9 +13,27 @@ cols.nb <- c("0" = "blue", "1" = "red")
 #ymin       : 39.01486 
 #ymax       : 39.02562 
 
+#class      : Extent 
+
+#xmin       : -107.0563 
+#xmax       : -107.0472 
+#ymin       : 39.03736 
+#ymax       : 39.04857 
+
 whole_scene_planet_co <- raster::stack('data/20180524_172327_0f51_3B_AnalyticMS_SR_clip_wgs84.tiff')
 
-aoi_manu <- extent(whole_scene_planet_co)
+
+# New one - class      : Extent 
+#xmin       : -107.0786 
+#xmax       : -107.0528 
+#ymin       : 39.0447 
+#ymax       : 39.06995 
+
+# OLD 04/07/22
+#aoi_manu <- extent(c(-107.0563,-107.0472,39.03736,39.04857))
+aoi_manu <- extent(c(-107.0786 ,-107.0528 ,39.0447 ,39.06995))
+
+
 ```
 
 #visualize
@@ -78,6 +86,7 @@ ggspatial::annotation_scale(location = "bl") +
 
 
 ```{r , echo=FALSE}
+cols.nb <- c("0" = "blue", "1" = "red")
 ostudyarea_basechm_co <- raster('data/BASECHMREDOCO/20180524_172327_0f51_3B_AnalyticMS_SR_clip_merged.tif')
 pred_study_basechm_co <- crop(ostudyarea_basechm_co,aoi_manu)
 plot(pred_study_basechm_co)
@@ -223,5 +232,5 @@ HEFG
   plot_annotation(tag_levels = 'A', title = '',
   subtitle = '',
   caption = 'RGB Imagery by Planet (A)') 
-ggsave("figs/main_figure_co_models_scene-take1.png",dpi=300, dev='png',  height=8, width=8,units="in")
+ggsave("figs/main_figure_co_models_scene-subset-revised.png",dpi=300, dev='png',  height=8, width=8,units="in")
 ```

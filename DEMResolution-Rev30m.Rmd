@@ -1,0 +1,100 @@
+---
+title: "DEMResoloution - Rev2 - 30m "
+author: "Aji John"
+date: "6/9/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+## Swiss site
+
+
+
+```{r cars}
+df_ch_demext3mdem <- read_csv(file='./data/DEMplusCHPredictions/processed-data.csv')
+df_ch_demext3mdem$demresolution <- '3m'
+df_ch_demextsrtmdem <- read_csv(file='./data/CHDEMPLUSSRTM30M/processed-data.csv')
+df_ch_demextsrtmdem$demresolution <- '30m - SRTM'
+
+```
+
+## CH
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+
+perfdemres <- rbind(df_ch_demext3mdem,df_ch_demextsrtmdem)
+
+perfdemres %>% mutate(score = round(avg_metric,2)) %>% 
+  ggplot() + geom_bar(aes(name,score,fill = demresolution), position = "dodge",stat="identity", width=.5) +
+   geom_text(aes(name,score,label=score, group=demresolution), position=position_dodge(width=0.5), vjust=-0.3) +
+ labs(x="" , y="",subtitle="",fill="") + theme_minimal(base_size = 18)+
+  ggpubr::theme_pubclean()
+ggsave(filename = "figs/tests-dem-ch-rev3-30m.png",dpi = 300,height=4,width=8,units="in")
+```
+
+## CO site
+
+
+
+```{r cars}
+df_co_demext3mdem <- read_csv(file='./data/DEMplusCOPredictions/processed-data.csv')
+df_co_demext3mdem$demresolution <- '3m'
+df_co_demextsrtmdem <- read_csv(file='./data/CODEMPLUSSRTM30M/processed-data.csv')
+df_co_demextsrtmdem$demresolution <- '30m - SRTM'
+
+```
+
+## CO
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+
+perfdemres_co <- rbind(df_co_demext3mdem,df_co_demextsrtmdem)
+
+perfdemres_co %>% mutate(score = round(avg_metric,2)) %>% 
+  ggplot() + geom_bar(aes(name,score,fill = demresolution), position = "dodge",stat="identity", width=.5) +
+   geom_text(aes(name,score,label=score, group=demresolution), position=position_dodge(width=0.5), vjust=-0.3) +
+ labs(x="" , y="",subtitle="",fill="") + theme_minimal(base_size = 18)+
+  ggpubr::theme_pubclean()
+ggsave(filename = "figs/tests-dem-co-rev2-30m.png",dpi = 300,height=4,width=8,units="in")
+```
+
+Area of the study  (Original)
+```{r , echo=FALSE}
+library(patchwork)
+layout <- "
+AB
+"
+
+gunsrtm3m <- perfdemres_co %>% mutate(score = round(avg_metric,2)) %>% 
+  ggplot() + geom_bar(aes(name,score,fill = demresolution), position = "dodge",stat="identity", width=.5) +
+   geom_text(aes(name,score,label=score, group=demresolution), position=position_dodge(width=0.5), vjust=-2) +
+   geom_errorbar(aes(x=name,y=score,ymin=score-se, ymax=score+se, group=demresolution), width=.2,
+                 position=position_dodge(.5),color="black") +
+ labs(x="" , y="",subtitle="",fill="") + theme_minimal(base_size = 18)+
+  ggpubr::theme_pubclean()
+
+swisssrtm3m <- perfdemres %>% mutate(score = round(avg_metric,2)) %>% 
+  ggplot() + geom_bar(aes(name,score,fill = demresolution), position = "dodge",stat="identity", width=.5) +
+   geom_text(aes(name,score,label=score, group=demresolution), position=position_dodge(width=0.5), vjust=-2) +
+    geom_errorbar(aes(x=name,y=score,ymin=score-se, ymax=score+se, group=demresolution), width=.2,
+                 position=position_dodge(.5),color="black") +
+ labs(x="" , y="",subtitle="",fill="") + theme_minimal(base_size = 18)+
+  ggpubr::theme_pubclean()
+
+ gunsrtm3m + swisssrtm3m +
+  plot_layout(design = layout) +
+  plot_annotation(tag_levels = 'A', title = '',
+  subtitle = '',
+  caption = '') 
+  #theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggsave("figs/resolutionanalysis-rev2-30m.png",dpi=300, dev='png',  height=8, width=12,units="in")
+```
+

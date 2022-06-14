@@ -77,6 +77,8 @@ ggspatial::annotation_scale(location = "bl") +
         axis.ticks.y=element_blank()) +  labs(title = "Planet RGB")
 ```
 
+ndvi
+
 
 ```{r , echo=FALSE}
 cols.nb <- c("0" = "blue", "1" = "red")
@@ -189,12 +191,113 @@ base_co <- gplot(pred_study_base_co) +
 ```
 
 ```{r , echo=FALSE}
+ostudyarea_baseext_co <- raster('data/COLORADOBASEEXT2/20180524_172327_0f51_3B_AnalyticMS_SR_clip_merged.tif')
+pred_study_baseext_co <- crop(ostudyarea_baseext_co,aoi_manu)
+plot(pred_study_baseext_co)
+
+baseext_co <- gplot(pred_study_baseext_co) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+  theme(text = element_text(size=16) ,panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom", axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) +  labs(title = "BASE")
+
+baseext_co_alt <- gplot(pred_study_baseext_co) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+  theme(text = element_text(size=16) ,panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom", axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) +  labs(title = "")
+
+```
+
+
+```{r , echo=FALSE}
 aso_colorado <- raster('data/ASO_3M_SD_USCOGE_20180524_binary_wgs84.tif')
 
 
 
 aso_study_area<- crop(aso_colorado,aoi_manu)
 plot(aso_study_area)
+```
+
+Plot the chm
+
+```{r, echo=FALSE}
+
+veg_all_gunni <- raster('data/Gunnison__chm_2point1by1point6.tif')
+
+chm_study_area_open<- crop(veg_all_gunni,aoi_manu)
+plot(chm_study_area_open)
+
+chm_open_study_area <- gplot(chm_study_area_open)+
+ coord_sf(crs = 4326)+
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme(panel.background = element_rect(colour = "black", fill="white"),legend.key.size  = unit(12, "mm"),legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x='',  y='', fill="Canopy height (m)") +
+  theme(text = element_text(size=16) ,panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom", axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())   +  labs(title =  "CHM")
+
+```
+Plot  dem open  area
+
+```{r, echo=FALSE}
+
+dem_all_gunni <- raster('data/gunnison_dem3m_wgs84.tif')
+
+dem_study_area_open<- crop(dem_all_gunni,aoi_manu)
+plot(dem_study_area_open)
+
+dem_open_study_area <- gplot(dem_study_area_open)+
+ coord_sf(crs = 4326)+
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom",legend.key.size  = unit(12, "mm"),
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x='',  y='', fill="Elevation (m)") +
+  theme(text = element_text(size=16) ,panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom", axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())   +  labs(title =  "Elevation")
+
+```
+
+ndvi
+
+```{r , echo=FALSE}
+study_area_open_ndvi <- (planet_large_study_area[[4]]-planet_large_study_area[[1]])/(planet_large_study_area[[4]]+planet_large_study_area[[1]])
+
+ ndvi_open_study_area <- gplot(study_area_open_ndvi)+
+ coord_sf(crs = 4326)+
+  geom_tile(aes(fill = value))  +
+ viridis::scale_fill_viridis(direction = -1, na.value='#FFFFFF00') + 
+  theme(panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom", legend.key.size  = unit(12, "mm"),
+      axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x='',  y='', fill="NDVI")   +
+  theme(text = element_text(size=16) ,panel.background = element_rect(colour = "black", fill="white"),legend.position = "bottom", axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())   +  labs(title =  "NDVI")
+ 
 ```
 
 ```{r , echo=FALSE}
@@ -210,6 +313,20 @@ base_aso_imagery <- gplot(aso_study_area) +
         axis.ticks.x=element_blank(),axis.title.y=element_blank(),
         axis.text.y=element_blank(),
         axis.ticks.y=element_blank())   +  labs(title =  "ASO LIDAR SCA")
+
+base_aso_imagery_alt <- gplot(aso_study_area) + 
+  geom_tile(aes(fill = as.character(value)) ) +
+   coord_sf(crs = 4326)+
+  scale_fill_manual(values = cols.nb,
+                    breaks = 0:1,
+                    labels = c("No snow", "Snow"),
+                    name = "") +
+  theme(text = element_text(size=16) ,panel.background = element_rect(colour = "black", fill="white"),legend.position = "left", axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())   +  labs(title =  "")
+
 ```
 
 
@@ -217,13 +334,42 @@ base_aso_imagery <- gplot(aso_study_area) +
 library(patchwork)
 layout <- "
 ABCD
-HEFG
+EFGH
 "
- baseplanet_co + base_co +basedemplus_co+ basechm_co +
-   basendvi_co + baseslopspnorth_co + basedemco + base_aso_imagery+
+ baseplanet_co + base_co +basedemplus_co+ basendvi_co + basechm_co +
+    baseslopspnorth_co + basedemco + base_aso_imagery+
   plot_layout(design = layout) +
   plot_annotation(tag_levels = 'A', title = '',
   subtitle = '',
-  caption = 'RGB Imagery by Planet (A)') 
+  caption = 'Copyright Planet Labs, Inc. (A)') +
+   theme(legend.position = "bottom")
 ggsave("figs/main_figure_co_models_scene-subset-good-openedge.png",dpi=300, dev='png',  height=12, width=14,units="in")
+```
+
+```{r , echo=FALSE}
+library(patchwork)
+layout2 <- "
+ABCD
+EFGH
+#JKL
+"
+baseplanet_co + base_co +basedemplus_co+ basendvi_co + basechm_co +
+    baseslopspnorth_co + basedemco + base_aso_imagery +
+   ndvi_open_study_area+chm_open_study_area+dem_open_study_area+ 
+  plot_layout(design = layout2,guides = 'collect')  +
+  plot_annotation(tag_levels = 'A', title = '',
+  subtitle = '',
+  caption = 'Copyright Planet Labs, Inc. (A)') +
+   theme(legend.position = "bottom")
+ggsave("figs/main_figure_co_models_scene-subset-good-openedge_rev.png",dpi=300, dev='png',  height=15, width=18,units="in")
+```
+
+
+```{r , echo=FALSE}
+library(patchwork)
+
+ baseplanet_co + base_aso_imagery+ baseext_co +  basendvi_co +
+  plot_annotation(
+  caption = 'Copyright applies. Planet Labs')
+ggsave("figs/topthree-plains.png",dpi=300, dev='png',  height=12, width=18,units="in")
 ```

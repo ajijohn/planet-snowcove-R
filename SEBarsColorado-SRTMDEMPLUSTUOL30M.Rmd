@@ -1,0 +1,165 @@
+---
+title: "SE Bars Notebook - CO with DEMPLUS SRTM Tuol only new 30M"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+
+```{r , echo=FALSE}
+library(raster)
+aso_colorado <- raster('data/ASO_3M_SD_USCOGE_20180524_binary_wgs84.tif')
+
+
+```
+
+
+## plot the raster parallel
+```{r , echo=FALSE}
+#library(rgdal)
+library(ClusterR)
+library(rasterVis)
+library(raster)
+library(ggplot2)
+library(RColorBrewer)
+
+start_time <- Sys.time()
+  beginCluster()
+  
+```
+
+```{r , echo=FALSE}
+#first import all files in a single folder as a list 
+rastlist <- list.files(path = "data/CODEMPLUSSRTM30M/", pattern='.tif', all.files=TRUE, full.names=TRUE)
+library(caret)
+i=0
+plo <- data.frame()
+skip_to_next <- FALSE
+ 
+for (file in  rastlist)
+{
+  print (file)
+  fileinprocess <- raster(file)
+  skip_to_next <- FALSE
+ 
+   aso_byscene <- crop(aso_colorado, extent(fileinprocess))
+   aso_byscene <-  projectRaster(aso_byscene,fileinprocess,method="ngb")
+  bysceneasoclip <- stack(aso_byscene,fileinprocess)
+  data_matrix_byscene<- as.data.frame(rasterToPoints(bysceneasoclip))
+  colnames(data_matrix_byscene) <- c('longitude','latitude','aso','pred')
+  data_matrix_byscene_filtered <- data_matrix_byscene[complete.cases(data_matrix_byscene),]
+ tryCatch(
+  cf <- confusionMatrix(as.factor(data_matrix_byscene_filtered$aso),as.factor(data_matrix_byscene_filtered$pred),mode = 'prec_recall') ,
+ error = function(e) { skip_to_next <<- TRUE})
+  
+  if(skip_to_next) { next }  
+  
+  print(cf)
+  if (i==0)
+  {
+    plo <- as.data.frame( t(cf$byClass))
+    #plo$file <- file
+    i <- 1
+  }
+  else
+  {
+    plo <- rbind(plo,t(cf$byClass))
+  }
+}
+
+head(plo)
+```
+```{r }
+plo
+```
+```{r }
+#remove 'Mavs' and 'Spurs' from vector
+rastlist <- rastlist[! rastlist %in% c('data/CODEMPLUSSRTM30M//20180524_172148_103d_3B_AnalyticMS_SR_clip_merged.tif')]
+
+```
+
+
+Add file names
+
+```{r }
+library(tidyverse)
+plo$Accuracy <- (plo$Sensitivity * plo$Prevalence) + ( (plo$Specificity) * (1-plo$Prevalence))
+
+plo$filename <- rastlist
+
+plot_longer_df <- plo %>% pivot_longer(!filename) %>% as.data.frame()
+```
+
+```{r }
+library(ggplot2)
+
+df_gunni <- plot_longer_df %>% 
+   group_by(name) %>%
+          dplyr::summarise(avg_metric = mean(value),
+                                        se = sd(value)/sqrt(length(value))) %>%
+  dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy","Accuracy")) %>%
+  as.data.frame()
+
+write_csv(df_gunni,file='./data/CODEMPLUSSRTM30M/processed-data.csv')
+
+# Default bar plot
+p<- plot_longer_df %>% 
+   group_by(name) %>%
+          dplyr::summarise(avg_metric = mean(value),
+                                        se = sd(value)/sqrt(length(value))) %>%
+  dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy",  "Accuracy")) %>%
+ggplot(aes(x=name, y=avg_metric)) + 
+  geom_bar(stat="identity",color="black" , 
+           position=position_dodge()) +
+  geom_errorbar(aes(ymin=avg_metric-se, ymax=avg_metric+se), width=.2,
+                 position=position_dodge(.9),color="#7FC97F") +
+  theme_minimal(base_size = 18)+
+  ggpubr::theme_cleveland() +
+  labs(x="",y="Value")
+plot_gunni <- p
+
+print(p)
+ggsave("figs/all_scenes_gunnison_srtmtuol30m.png",dpi=300, dev='png',  height=8, width=10,units="in")
+# Finished bar plot
+#p+labs(title="Tooth length per dose", x="Dose (mg)", y = "Length")+
+#   theme_classic() +
+#   scale_fill_manual(values=c('#999999','#E69F00'))
+
+```
+  
+  
+```{r }
+library(tidyverse)
+plotch_longer_df <- read_csv(file='./data/CODEMPLUSSRTM30M/processed-data.csv')
+
+
+# Default bar plot
+pch<- plotch_longer_df %>% 
+  dplyr::filter(name %in% c("Precision","Recall" ,             "F1"    ,  "Balanced Accuracy" ,"Accuracy")) %>%
+ggplot(aes(x=name, y=avg_metric)) + 
+  geom_bar(stat="identity",color="black" , 
+           position=position_dodge()) +
+  geom_errorbar(aes(ymin=avg_metric-se, ymax=avg_metric+se), width=.2,
+                 position=position_dodge(.9),color="#7FC97F") +
+  theme_minimal(base_size = 18)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  ggpubr::theme_cleveland() +
+  labs(x="",y="Value")
+swiss_plot <- pch
+
+print(pch)
+ggsave("figs/all_scenes_gunnison_srtmtuolonly30m.png",dpi=300, dev='png',  height=8, width=10,units="in")
+
+```
+  
+  
+
+
+```{r , echo=FALSE}
+endCluster()
+end_time <- Sys.time()
+end_time - start_time
+
+```
