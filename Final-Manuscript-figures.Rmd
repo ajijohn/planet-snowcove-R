@@ -40,8 +40,7 @@ ggplot(aes(x=name, y=avg_metric)) +
   theme_minimal(base_size = 24)+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   scale_y_continuous(breaks = c(.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0))+
-  labs(x="",y="") +
-   ggpubr::theme_pubclean()
+  labs(x="",y="") 
 
 swiss_plot <- pch2
 
@@ -75,8 +74,7 @@ ggplot(aes(x=name, y=avg_metric)) +
   theme_minimal(base_size = 24)+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
    scale_y_continuous(breaks = c(.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0))+
-  labs(x="",y="Value") +
-  ggpubr::theme_pubclean()
+  labs(x="",y="Value") 
 
 plot_gunni <- p2
 
